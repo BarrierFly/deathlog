@@ -7,7 +7,6 @@ import io.wispforest.owo.serialization.RegistriesAttribute;
 import io.wispforest.owo.serialization.format.nbt.NbtDeserializer;
 import io.wispforest.owo.serialization.format.nbt.NbtSerializer;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.registry.DynamicRegistryManager;
@@ -21,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-// TODO format conversion?
 public abstract class BaseDeathLogStorage implements DeathLogStorage {
 
     private static final int FORMAT_REVISION = 3;
@@ -37,7 +35,7 @@ public abstract class BaseDeathLogStorage implements DeathLogStorage {
 
     protected CompletableFuture<List<DeathInfo>> load(DynamicRegistryManager registries, File file) {
         final var future = new CompletableFuture<List<DeathInfo>>();
-        Util.getIoWorkerExecutor().submit(() -> {
+        Util.getIoWorkerExecutor().service().submit(() -> {
             if (errored) {
                 LOGGER.warn("Attempted to load DeathLog database even though disk operations are disabled");
                 future.complete(null);
@@ -50,7 +48,7 @@ public abstract class BaseDeathLogStorage implements DeathLogStorage {
                 try {
                     deathNbt = NbtIo.read(file.toPath());
 
-                    if (deathNbt.getInt("FormatRevision") != FORMAT_REVISION) {
+                    if (deathNbt.getInt("FormatRevision").orElse(-1) != FORMAT_REVISION) {
                         raiseError("Incompatible format");
 
                         LOGGER.error("Incompatible DeathLog database format detected. Database not loaded and further disk operations disabled");
@@ -72,14 +70,16 @@ public abstract class BaseDeathLogStorage implements DeathLogStorage {
             }
 
             final var list = new ArrayList<DeathInfo>();
-            final NbtList infoList = deathNbt.getList("Deaths", NbtElement.COMPOUND_TYPE);
+            final NbtList infoList = deathNbt.getList("Deaths").orElse(new NbtList());
             try {
                 for (int i = 0; i < infoList.size(); i++) {
-                    list.add(DeathInfo.ENDEC.decodeFully(
+                    infoList.getCompound(i).ifPresent(compound ->
+                        list.add(DeathInfo.ENDEC.decodeFully(
                             SerializationContext.attributes(RegistriesAttribute.of(registries)),
                             NbtDeserializer::of,
-                            infoList.getCompound(i)
-                    ));
+                            compound
+                        ))
+                    );
                 }
             } catch (Exception e) {
                 LOGGER.error("Failed to decode death info", e);
@@ -93,7 +93,7 @@ public abstract class BaseDeathLogStorage implements DeathLogStorage {
 
     protected void save(DynamicRegistryManager registries, File file, List<DeathInfo> listIn) {
         final var list = ImmutableList.copyOf(listIn);
-        Util.getIoWorkerExecutor().submit(() -> {
+        Util.getIoWorkerExecutor().service().submit(() -> {
             if (errored) {
                 LOGGER.warn("Attempted to save DeathLog database even though disk operations are disabled");
                 return;

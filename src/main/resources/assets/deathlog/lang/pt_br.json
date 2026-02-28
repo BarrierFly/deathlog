@@ -1,10 +1,34 @@
 {
   "deathlog.deathinfoproperty.coordinates": "Posição",
+  "deathlog.deathinfoproperty.coordinates.value": "%s %s %s",
   "deathlog.deathinfoproperty.dimension": "Dimensão",
+  "deathlog.deathinfoproperty.location.singleplayer": "Um jogador",
+  "deathlog.deathinfoproperty.location.multiplayer": "Multijogador",
   "deathlog.deathinfoproperty.location": "Local",
+  "deathlog.deathinfoproperty.location.value": "%s (%s)",
   "deathlog.deathinfoproperty.score": "Pontuação",
-  "deathlog.deathinfoproperty.death_message": "Aviso de morte",
+  "deathlog.deathinfoproperty.score.value": "%s (%s levels, %s xp)",
+  "deathlog.deathinfoproperty.death_message": "Mensagem de morte",
   "deathlog.deathinfoproperty.time_of_death": "Hora da morte",
   "deathlog.deathinfoproperty.trinket_component": "Acessórios",
-  "key.deathlog.death_screen": "Tela do Death Log"
+  "deathlog.deathinfoproperty.trinket_component.value": "%s itens",
+  "key.deathlog.death_screen": "Tela do Death Log",
+
+  "text.deathlog.action.restore": "Restaurar",
+  "text.deathlog.action.give_item.spawn": "Pressione o botão do meio do mouse para gerar",
+  "text.deathlog.action.give_item.copy_give": "Pressione o botão do meio do mouse para copiar /give",
+  "text.deathlog.action.delete": "Excluir",
+
+  "text.deathlog.info.time_missing": "Hora ausente",
+  "text.deathlog.info.death_message_missing": "Mensagem de morte ausente",
+
+  "text.deathlog.death_list_title": "DeathLog - %s no total",
+  "text.deathlog.death_info_loading": "Carregando...",
+  "text.deathlog.no_info_selected_hint": "Selecione uma morte\nna lista para começar",
+
+  "text.deathlog.config": "⇄ Config",
+  "text.config.deathlog.title": "Configuração do DeathLog",
+  "text.config.deathlog.option.screenshotsEnabled": "Screenshot ao morrer",
+  "text.config.deathlog.option.useLegacyDeathDetection": "Usar detecção de morte legada",
+  "text.config.deathlog.option.useLegacyDeathDetection.tooltip": "Usa um método menos confiável, mas mais sensível\npara detectar mortes, que funciona com\ntradutores de protocolo como o ViaFabric"
 }

@@ -1,9 +1,6 @@
-# DeathLog
+# DeathLog [Fork]
 
-[![curseforge](https://img.shields.io/badge/-CurseForge-gray?style=for-the-badge&logo=curseforge&labelColor=orange)](https://www.curseforge.com/minecraft/mc-mods/deathlog)
-[![modrinth](https://img.shields.io/badge/-modrinth-gray?style=for-the-badge&labelColor=green&labelWidth=15&logo=appveyor&logoColor=white)](https://modrinth.com/mod/deathlog)
-[![release](https://img.shields.io/github/v/release/glisco03/deathlog?logo=github&style=for-the-badge)](https://github.com/glisco03/deathlog/releases)
-[![discord](https://img.shields.io/discord/825828008644313089?label=wisp%20forest&logo=discord&logoColor=white&style=for-the-badge)](https://discord.gg/xrwHKktV2d)
+This mod is a fork of the repository of the original [DeathLog](https://modrinth.com/mod/deathlog) mod.  
 
 ## Overview
 

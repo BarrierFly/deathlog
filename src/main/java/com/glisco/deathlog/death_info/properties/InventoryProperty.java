@@ -6,6 +6,7 @@ import io.wispforest.endec.Endec;
 import io.wispforest.endec.StructEndec;
 import io.wispforest.endec.impl.StructEndecBuilder;
 import io.wispforest.owo.serialization.endec.MinecraftEndecs;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -20,7 +21,7 @@ public class InventoryProperty implements RestorableDeathInfoProperty {
     private static final StructEndec<InventoryProperty> ENDEC = StructEndecBuilder.of(
             defaulted(MinecraftEndecs.ITEM_STACK.listOf()).fieldOf("items", s -> s.playerItems),
             defaulted(MinecraftEndecs.ITEM_STACK.listOf()).fieldOf("armor", s -> s.playerArmor),
-            InventoryProperty::new
+            (playerItems, playerArmor) -> new InventoryProperty(playerItems, playerArmor)
     );
 
     private final DefaultedList<ItemStack> playerItems;
@@ -35,10 +36,13 @@ public class InventoryProperty implements RestorableDeathInfoProperty {
         this.playerItems = DefaultedList.ofSize(37, ItemStack.EMPTY);
         this.playerArmor = DefaultedList.ofSize(4, ItemStack.EMPTY);
 
-        copy(playerInventory.armor, playerArmor);
-        copy(playerInventory.main, playerItems);
-
-        playerItems.set(36, playerInventory.offHand.get(0).copy());
+        for (int i = 0; i < 36; i++) {
+            playerItems.set(i, playerInventory.getStack(i).copy());
+        }
+        playerArmor.set(0, playerInventory.player.getEquippedStack(EquipmentSlot.FEET).copy());
+        playerArmor.set(1, playerInventory.player.getEquippedStack(EquipmentSlot.LEGS).copy());
+        playerArmor.set(2, playerInventory.player.getEquippedStack(EquipmentSlot.CHEST).copy());
+        playerArmor.set(3, playerInventory.player.getEquippedStack(EquipmentSlot.HEAD).copy());
     }
 
     @Override
@@ -63,13 +67,17 @@ public class InventoryProperty implements RestorableDeathInfoProperty {
 
     @Override
     public void restore(ServerPlayerEntity player) {
-        final var inventory = player.getInventory();
+        var inventory = player.getInventory();
         inventory.clear();
 
-        copy(playerArmor, inventory.armor);
-        copy(playerItems, inventory.main, 36);
-
-        inventory.offHand.set(0, playerItems.get(36));
+        for (int i = 0; i < 36; i++) {
+            inventory.setStack(i, playerItems.get(i));
+        }
+        player.equipStack(EquipmentSlot.OFFHAND, playerItems.get(36));
+        player.equipStack(EquipmentSlot.FEET, playerArmor.get(0));
+        player.equipStack(EquipmentSlot.LEGS, playerArmor.get(1));
+        player.equipStack(EquipmentSlot.CHEST, playerArmor.get(2));
+        player.equipStack(EquipmentSlot.HEAD, playerArmor.get(3));
     }
 
     public DefaultedList<ItemStack> getPlayerArmor() {
@@ -78,14 +86,6 @@ public class InventoryProperty implements RestorableDeathInfoProperty {
 
     public DefaultedList<ItemStack> getPlayerItems() {
         return playerItems;
-    }
-
-    private static void copy(DefaultedList<ItemStack> list, DefaultedList<ItemStack> other) {
-        copy(list, other, list.size());
-    }
-
-    private static void copy(DefaultedList<ItemStack> list, DefaultedList<ItemStack> other, int maxItems) {
-        for (int i = 0; i < maxItems; i++) other.set(i, list.get(i).copy());
     }
 
     private static <T> Endec<DefaultedList<T>> defaulted(Endec<List<T>> endec) {

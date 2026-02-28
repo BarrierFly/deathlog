@@ -116,9 +116,9 @@ public class DeathLogPackets {
     public record OpenScreen(UUID profile, boolean canRestore, List<DeathInfo> partialInfos) {
         public static final StructEndec<OpenScreen> ENDEC = StructEndecBuilder.of(
                 BuiltInEndecs.UUID.fieldOf("profile", OpenScreen::profile),
-                Endec.BOOLEAN.fieldOf("can_restore", OpenScreen::canRestore),
+                Endec.BOOLEAN.fieldOf("can_restore", o -> o.canRestore()),
                 DeathInfo.PARTIAL_ENDEC.listOf().fieldOf("partial_infos", OpenScreen::partialInfos),
-                OpenScreen::new
+                (uuid, canRestore, partialInfos) -> new OpenScreen(uuid, canRestore, partialInfos)
         );
     }
 }

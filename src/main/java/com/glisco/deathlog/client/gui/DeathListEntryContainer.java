@@ -5,6 +5,8 @@ import io.wispforest.owo.ui.core.*;
 import io.wispforest.owo.ui.util.UISounds;
 import io.wispforest.owo.util.EventSource;
 import io.wispforest.owo.util.EventStream;
+import net.minecraft.client.gui.Click;
+import net.minecraft.client.input.KeyInput;
 import org.lwjgl.glfw.GLFW;
 
 public class DeathListEntryContainer extends FlowLayout {
@@ -25,9 +27,9 @@ public class DeathListEntryContainer extends FlowLayout {
     }
 
     @Override
-    public void draw(OwoUIDrawContext context, int mouseX, int mouseY, float partialTicks, float delta) {
-        super.draw(context, mouseX, mouseY, partialTicks, delta);
-        if (this.selected) context.drawRectOutline(this.x, this.y, this.width, this.height, 0xFFAFAFAF);
+    public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
+        super.draw(graphics, mouseX, mouseY, partialTicks, delta);
+        if (this.selected) graphics.drawRectOutline(this.x, this.y, this.width, this.height, 0xFFAFAFAF);
     }
 
     @Override
@@ -40,22 +42,22 @@ public class DeathListEntryContainer extends FlowLayout {
     }
 
     @Override
-    public boolean onMouseDown(double mouseX, double mouseY, int button) {
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            super.onMouseDown(mouseX, mouseY, button);
+    public boolean onMouseDown(Click click, boolean doubled) {
+        if (click.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            super.onMouseDown(click, doubled);
 
             this.select();
             return true;
         } else {
-            return super.onMouseDown(mouseX, mouseY, button);
+            return super.onMouseDown(click, doubled);
         }
     }
 
     @Override
-    public boolean onKeyPress(int keyCode, int scanCode, int modifiers) {
-        boolean success = super.onKeyPress(keyCode, scanCode, modifiers);
+    public boolean onKeyPress(KeyInput input) {
+        boolean success = super.onKeyPress(input);
 
-        if (keyCode != GLFW.GLFW_KEY_ENTER && keyCode != GLFW.GLFW_KEY_SPACE && keyCode != GLFW.GLFW_KEY_KP_ENTER) {
+        if (input.isEnterOrSpace()) {
             return success;
         }
 

@@ -1,12 +1,13 @@
 package com.glisco.deathlog.client.gui;
 
 import com.glisco.deathlog.client.DeathInfo;
+import com.glisco.deathlog.client.DeathLogClient;
 import com.glisco.deathlog.network.RemoteDeathLogStorage;
 import com.glisco.deathlog.storage.DirectDeathLogStorage;
 import io.wispforest.owo.config.ui.ConfigScreen;
 import io.wispforest.owo.ui.base.BaseUIModelScreen;
 import io.wispforest.owo.ui.component.*;
-import io.wispforest.owo.ui.container.Containers;
+import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.GridLayout;
 import io.wispforest.owo.ui.core.Insets;
@@ -23,6 +24,7 @@ import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
@@ -77,7 +79,7 @@ public class DeathLogScreen extends BaseUIModelScreen<FlowLayout> {
         });
 
         rootComponent.childById(ButtonComponent.class, "config-button").onPress(button -> {
-            this.client.setScreen(ConfigScreen.getProvider("deathlog").apply(this));
+            this.client.setScreen(ConfigScreen.create(DeathLogClient.CONFIG, this));
         });
 
         this.uiAdapter.rootComponent.childById(LabelComponent.class, "death-count-label").text(
@@ -120,18 +122,17 @@ public class DeathLogScreen extends BaseUIModelScreen<FlowLayout> {
                         this.selectInfo(this.storage.getDeathInfoList().get(infoIndex));
                     });
 
-                    container.mouseDown().subscribe((mouseX, mouseY, button) -> {
-                        if (button != GLFW.GLFW_MOUSE_BUTTON_RIGHT) return false;
+                    container.mouseDown().subscribe((click, doubled) -> {
+                        if (click.button() != GLFW.GLFW_MOUSE_BUTTON_RIGHT) return false;
 
                         var root = this.uiAdapter.rootComponent;
                         DropdownComponent.openContextMenu(
                                 this,
                                 root, FlowLayout::child,
-                                container.x() - root.padding().get().left() + mouseX,
-                                container.y() - root.padding().get().top() + mouseY,
+                                container.x() - root.padding().get().left() + click.x(),
+                                container.y() - root.padding().get().top() + click.y(),
                                 dropdown -> {
                                     dropdown.surface(Surface.blur(3, 5).and(Surface.flat(0xC7000000)).and(Surface.outline(0xFF121212)));
-                                    dropdown.zIndex(100);
 
                                     if (this.canRestore) {
                                         dropdown.button(Text.translatable("text.deathlog.action.restore"), dropdown_ -> {
@@ -140,7 +141,7 @@ public class DeathLogScreen extends BaseUIModelScreen<FlowLayout> {
                                         });
                                     }
 
-                                    dropdown.button(Text.translatable("text.deathlog.action.delete"), dropdown_ -> {
+                                    dropdown.button(Text.translatable("text.deathlog.action.delete").formatted(Formatting.RED), dropdown_ -> {
                                         this.storage.delete(deathInfo);
                                         this.buildDeathList();
                                         dropdown.remove();
@@ -162,36 +163,36 @@ public class DeathLogScreen extends BaseUIModelScreen<FlowLayout> {
             panel.clearChildren();
 
             if (info.isPartial()) {
-                panel.child(Components.label(Text.translatable("text.deathlog.death_info_loading")).margins(Insets.top(15)));
+                panel.child(UIComponents.label(Text.translatable("text.deathlog.death_info_loading")).margins(Insets.top(15)));
                 return;
             }
 
-            panel.child(Components.label(info.getTitle()).shadow(true).margins(Insets.of(15, 10, 0, 0)));
+            panel.child(UIComponents.label(info.getTitle()).shadow(true).margins(Insets.of(15, 10, 0, 0)));
 
             FlowLayout leftColumn;
             FlowLayout rightColumn;
-            panel.child(Containers.horizontalFlow(Sizing.content(), Sizing.content())
-                    .child(leftColumn = Containers.verticalFlow(Sizing.content(), Sizing.content()))
-                    .child(rightColumn = Containers.verticalFlow(Sizing.content(), Sizing.content())));
+            panel.child(UIContainers.horizontalFlow(Sizing.content(), Sizing.content())
+                    .child(leftColumn = UIContainers.verticalFlow(Sizing.content(), Sizing.content()))
+                    .child(rightColumn = UIContainers.verticalFlow(Sizing.content(), Sizing.content())));
 
             leftColumn.gap(2);
             for (var text : info.getLeftColumnText()) {
-                leftColumn.child(Components.label(text).shadow(true));
+                leftColumn.child(UIComponents.label(text).shadow(true));
             }
 
             rightColumn.gap(2).margins(Insets.left(5));
             for (var text : info.getRightColumnText()) {
-                rightColumn.child(Components.label(text));
+                rightColumn.child(UIComponents.label(text));
             }
 
             FlowLayout itemContainer;
-            panel.child(itemContainer = Containers.verticalFlow(Sizing.content(), Sizing.content()));
+            panel.child(itemContainer = UIContainers.verticalFlow(Sizing.content(), Sizing.content()));
             itemContainer.margins(Insets.top(5));
 
-            itemContainer.child(Components.texture(Identifier.of("deathlog", "textures/gui/inventory_overlay.png"), 0, 0, 210, 107));
+            itemContainer.child(UIComponents.texture(Identifier.of("deathlog", "textures/gui/inventory_overlay.png"), 0, 0, 210, 107));
 
             FlowLayout armorFlow;
-            itemContainer.child(armorFlow = Containers.verticalFlow(Sizing.content(), Sizing.content()));
+            itemContainer.child(armorFlow = UIContainers.verticalFlow(Sizing.content(), Sizing.content()));
 
             armorFlow.positioning(Positioning.absolute(185, 28));
             for (int i = 0; i < info.getPlayerArmor().size(); i++) {
@@ -199,7 +200,7 @@ public class DeathLogScreen extends BaseUIModelScreen<FlowLayout> {
             }
 
             GridLayout itemGrid;
-            itemContainer.child(itemGrid = Containers.grid(Sizing.content(), Sizing.content(), 4, 9));
+            itemContainer.child(itemGrid = UIContainers.grid(Sizing.content(), Sizing.content(), 4, 9));
 
             var inventory = info.getPlayerItems();
 
@@ -219,16 +220,16 @@ public class DeathLogScreen extends BaseUIModelScreen<FlowLayout> {
     }
 
     private ItemComponent makeItem(ItemStack stack, Insets margins) {
-        var item = Components.item(stack).showOverlay(true);
+        var item = UIComponents.item(stack).showOverlay(true);
         item.margins(margins);
 
         if (!stack.isEmpty()) {
             var tooltip = stack.getTooltip(Item.TooltipContext.DEFAULT, client.player, client.options.advancedItemTooltips ? TooltipType.ADVANCED : TooltipType.BASIC);
-            tooltip.add(Text.translatable(this.client.player.isCreative() ? "text.deathlog.action.give_item.spawn" : "text.deathlog.action.give_item.copy_give"));
+            tooltip.add(Text.translatable(this.client.player.isCreative() ? "text.deathlog.action.give_item.spawn" : "text.deathlog.action.give_item.copy_give").formatted(Formatting.GRAY));
             item.tooltip(tooltip);
 
-            item.mouseDown().subscribe((mouseX, mouseY, button) -> {
-                if (button != GLFW.GLFW_MOUSE_BUTTON_MIDDLE) return false;
+            item.mouseDown().subscribe((click, doubled) -> {
+                if (click.button() != GLFW.GLFW_MOUSE_BUTTON_MIDDLE) return false;
 
                 if (this.client.player.isCreative()) {
                     this.client.interactionManager.dropCreativeStack(stack);

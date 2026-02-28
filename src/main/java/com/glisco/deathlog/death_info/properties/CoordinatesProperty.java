@@ -6,6 +6,7 @@ import io.wispforest.endec.StructEndec;
 import io.wispforest.endec.impl.StructEndecBuilder;
 import io.wispforest.owo.serialization.endec.MinecraftEndecs;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
@@ -13,7 +14,7 @@ public class CoordinatesProperty implements DeathInfoProperty {
 
     private static final StructEndec<CoordinatesProperty> ENDEC = StructEndecBuilder.of(
             MinecraftEndecs.BLOCK_POS.fieldOf("coordinates", s -> s.coordinates),
-            CoordinatesProperty::new
+            (coordinates) -> new CoordinatesProperty(coordinates)
     );
 
     private final BlockPos coordinates;
@@ -29,7 +30,12 @@ public class CoordinatesProperty implements DeathInfoProperty {
 
     @Override
     public Text formatted() {
-        return Text.translatable("deathlog.deathinfoproperty.coordinates.value", coordinates.getX(), coordinates.getY(), coordinates.getZ());
+        return Text.literal("")
+                .append(Text.literal(String.valueOf(coordinates.getX())).formatted(Formatting.RED))
+                .append(" ")
+                .append(Text.literal(String.valueOf(coordinates.getY())).formatted(Formatting.GREEN))
+                .append(" ")
+                .append(Text.literal(String.valueOf(coordinates.getZ())).formatted(Formatting.AQUA));
     }
 
     @Override

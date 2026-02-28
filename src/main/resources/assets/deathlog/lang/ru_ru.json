@@ -1,0 +1,34 @@
+{
+  "deathlog.deathinfoproperty.coordinates": "Координаты",
+  "deathlog.deathinfoproperty.coordinates.value": "%s %s %s",
+  "deathlog.deathinfoproperty.dimension": "Измерение",
+  "deathlog.deathinfoproperty.location.singleplayer": "Одиночная игра",
+  "deathlog.deathinfoproperty.location.multiplayer": "Мультиплеер",
+  "deathlog.deathinfoproperty.location": "Локация",
+  "deathlog.deathinfoproperty.location.value": "%s (%s)",
+  "deathlog.deathinfoproperty.score": "Счёт",
+  "deathlog.deathinfoproperty.score.value": "%s (%s levels, %s xp)",
+  "deathlog.deathinfoproperty.death_message": "Сообщение о смерти",
+  "deathlog.deathinfoproperty.time_of_death": "Время смерти",
+  "deathlog.deathinfoproperty.trinket_component": "Аксессуары",
+  "deathlog.deathinfoproperty.trinket_component.value": "%s предмет(ов)",
+  "key.deathlog.death_screen": "Окно журнала смерти",
+
+  "text.deathlog.action.restore": "Восстановить",
+  "text.deathlog.action.give_item.spawn": "Нажмите 'Mouse 3' для спавна предмета",
+  "text.deathlog.action.give_item.copy_give": "Нажмите 'Mouse 3' для копирования в /give",
+  "text.deathlog.action.delete": "Удалить",
+
+  "text.deathlog.info.time_missing": "Время неизвестно",
+  "text.deathlog.info.death_message_missing": "Сообщение о смерти отсутствует",
+
+  "text.deathlog.death_list_title": "Журнал смерти - всего %s",
+  "text.deathlog.death_info_loading": "Загрузка...",
+  "text.deathlog.no_info_selected_hint": "Выберите информацию о смерти\nиз списка для начала",
+
+  "text.deathlog.config": "⇄ Настройки",
+  "text.config.deathlog.title": "Журнал смерти: Настройки",
+  "text.config.deathlog.option.screenshotsEnabled": "Скриншот при смерти",
+  "text.config.deathlog.option.useLegacyDeathDetection": "Использовать старое определение смерти",
+  "text.config.deathlog.option.useLegacyDeathDetection.tooltip": "Использует менее надежный, но более чувствительный\nметод определения смерти, который работает\nс переводчиками протоколов, такими как ViaFabric"
+}

@@ -13,7 +13,7 @@ public class StringProperty implements DeathInfoProperty {
     private static final StructEndec<StringProperty> ENDEC = StructEndecBuilder.of(
             Endec.STRING.fieldOf("translation_key", s -> s.translationKey),
             Endec.STRING.fieldOf("data", s -> s.data),
-            StringProperty::new
+            (translationKey, data) -> new StringProperty(translationKey, data)
     );
 
     private final String translationKey;

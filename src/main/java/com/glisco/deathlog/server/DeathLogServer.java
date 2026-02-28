@@ -16,7 +16,9 @@ import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.command.CommandSource;
+import net.minecraft.command.DefaultPermissions;
 import net.minecraft.command.argument.GameProfileArgumentType;
+import net.minecraft.command.permission.PermissionLevel;
 import net.minecraft.server.PlayerManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -35,7 +37,7 @@ import static net.minecraft.server.command.CommandManager.literal;
 public class DeathLogServer implements DedicatedServerModInitializer {
 
     private static final DynamicCommandExceptionType INVALID_INDEX = new DynamicCommandExceptionType(o -> Text.literal("No DeathInfo found for index " + o));
-    private static final DynamicCommandExceptionType NO_PLAYER_FOR_PROFILE = new DynamicCommandExceptionType(o -> Text.literal("Player " + ((GameProfile) o).getName() + " is not online"));
+    private static final DynamicCommandExceptionType NO_PLAYER_FOR_PROFILE = new DynamicCommandExceptionType(o -> Text.literal("Player " + ((GameProfile) o).name() + " is not online"));
     private static final SimpleCommandExceptionType NO_DEATHS = new SimpleCommandExceptionType(Text.literal("No DeathInfo found"));
 
     private static ServerDeathLogStorage storage;
@@ -54,11 +56,11 @@ public class DeathLogServer implements DedicatedServerModInitializer {
                                             .executes(context -> executeList(context, StringArgumentType.getString(context, "search_term"))))))
                     .then(literal("view").requires(hasPermission("deathlog.view")).then(createProfileArgument().executes(context -> {
                         var player = context.getSource().getPlayer();
-                        var profileId = getProfile(context).getId();
+                        var profileId = getProfile(context).id();
 
                         DeathLogPackets.CHANNEL.serverHandle(player).send(new DeathLogPackets.OpenScreen(
                                 profileId,
-                                player.getServer().getPlayerManager().getPlayer(profileId) != null,
+                                player.getEntityWorld().getServer().getPlayerManager().getPlayer(profileId) != null,
                                 DeathLogServer.getStorage().getDeathInfoList(profileId)
                         ));
                         return 0;
@@ -72,7 +74,7 @@ public class DeathLogServer implements DedicatedServerModInitializer {
     private int executeList(CommandContext<ServerCommandSource> context, @Nullable String filter) throws CommandSyntaxException {
         var profile = getProfile(context);
 
-        var deathInfoList = DeathLogServer.getStorage().getDeathInfoList(profile.getId());
+        var deathInfoList = DeathLogServer.getStorage().getDeathInfoList(profile.id());
         if (filter != null) deathInfoList = deathInfoList.stream().filter(info -> info.createSearchString().contains(filter.toLowerCase())).toList();
 
         final var infoListSize = deathInfoList.size();
@@ -92,17 +94,17 @@ public class DeathLogServer implements DedicatedServerModInitializer {
         }
 
         if (infoListSize > 0) context.getSource().sendFeedback(() -> Text.literal(""), false);
-        context.getSource().sendFeedback(() -> Text.literal("Queried §b" + infoListSize + "§r death info entries for player ").append("§b" + profile.getName()), false);
+        context.getSource().sendFeedback(() -> Text.literal("Queried §b" + infoListSize + "§r death info entries for player ").append("§b" + profile.name()), false);
 
         return infoListSize;
     }
 
     private static Predicate<ServerCommandSource> hasPermission(String node) {
-        return DeathLogCommon.usePermissions() ? Permissions.require(node, 4) : serverCommandSource -> serverCommandSource.hasPermissionLevel(4);
+        return DeathLogCommon.usePermissions() ? Permissions.require(node, PermissionLevel.OWNERS) : serverCommandSource -> serverCommandSource.getPermissions().hasPermission(DefaultPermissions.OWNERS);
     }
 
     public static boolean hasPermission(ServerPlayerEntity player, String node) {
-        return DeathLogCommon.usePermissions() ? Permissions.check(player, node, 4) : player.hasPermissionLevel(4);
+        return DeathLogCommon.usePermissions() ? Permissions.check(player, node, PermissionLevel.OWNERS) : player.getPermissions().hasPermission(DefaultPermissions.OWNERS);
     }
 
     private static int executeRestoreLatest(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
@@ -117,9 +119,9 @@ public class DeathLogServer implements DedicatedServerModInitializer {
 
     private static void restore(CommandContext<ServerCommandSource> context, Function<List<DeathInfo>, Integer> indexProvider, Function<Integer, CommandSyntaxException> exceptionProvider) throws CommandSyntaxException {
         final var targetProfile = getProfile(context);
-        final var deathInfoList = DeathLogServer.getStorage().getDeathInfoList(targetProfile.getId());
+        final var deathInfoList = DeathLogServer.getStorage().getDeathInfoList(targetProfile.id());
 
-        final var targetPlayer = context.getSource().getServer().getPlayerManager().getPlayer(targetProfile.getId());
+        final var targetPlayer = context.getSource().getServer().getPlayerManager().getPlayer(targetProfile.id());
         if (targetPlayer == null) throw NO_PLAYER_FOR_PROFILE.create(targetProfile);
 
         final int index = indexProvider.apply(deathInfoList);
@@ -129,14 +131,15 @@ public class DeathLogServer implements DedicatedServerModInitializer {
     }
 
     private static GameProfile getProfile(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        var profileArgument = GameProfileArgumentType.getProfileArgument(context, "player");
-        return profileArgument.iterator().next();
+        var entries = GameProfileArgumentType.getProfileArgument(context, "player");
+        var entry = entries.iterator().next();
+        return new GameProfile(entry.id(), entry.name());
     }
 
     private static RequiredArgumentBuilder<ServerCommandSource, GameProfileArgumentType.GameProfileArgument> createProfileArgument() {
         return argument("player", GameProfileArgumentType.gameProfile()).suggests((context, builder) -> {
             PlayerManager playerManager = context.getSource().getServer().getPlayerManager();
-            return CommandSource.suggestMatching(playerManager.getPlayerList().stream().map((player) -> player.getGameProfile().getName()), builder);
+            return CommandSource.suggestMatching(playerManager.getPlayerList().stream().map((player) -> player.getGameProfile().name()), builder);
         });
     }
 

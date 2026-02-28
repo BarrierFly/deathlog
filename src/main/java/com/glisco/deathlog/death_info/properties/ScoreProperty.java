@@ -7,6 +7,7 @@ import io.wispforest.endec.StructEndec;
 import io.wispforest.endec.impl.StructEndecBuilder;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 
 public class ScoreProperty implements RestorableDeathInfoProperty {
@@ -16,13 +17,12 @@ public class ScoreProperty implements RestorableDeathInfoProperty {
             Endec.INT.fieldOf("levels", s -> s.levels),
             Endec.FLOAT.fieldOf("progress", s -> s.progress),
             Endec.INT.fieldOf("xp", s -> s.xp),
-            ScoreProperty::new
+            (score, levels, progress, xp) -> new ScoreProperty(score, levels, progress, xp)
     );
 
     private final int score;
     private final int levels;
     private final float progress;
-
     private final int xp;
 
     public ScoreProperty(int score, int level, float progress, int xp) {
@@ -39,10 +39,16 @@ public class ScoreProperty implements RestorableDeathInfoProperty {
 
     @Override
     public Text formatted() {
-        return Text.translatable(
-                "deathlog.deathinfoproperty.score.value",
-                score, levels, xp
-        );
+        var scoreText = Text.literal(String.valueOf(this.score));
+
+        return Text.literal("")
+                .append(scoreText)
+                .append(" ")
+                .append(Text.literal("(").formatted(Formatting.GRAY))
+                .append(Text.literal(String.valueOf(this.levels)).formatted(Formatting.GRAY))
+                .append(Text.literal(" levels, ").formatted(Formatting.GRAY))
+                .append(Text.literal(String.valueOf(this.xp)).formatted(Formatting.GRAY))
+                .append(Text.literal(" xp)").formatted(Formatting.GRAY));
     }
 
     @Override

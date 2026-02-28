@@ -41,6 +41,15 @@ public class DeathInfo {
     public static final String TIME_OF_DEATH_KEY = "time_of_death";
     public static final String INVENTORY_KEY = "inventory";
 
+    private static final String[] DISPLAY_ORDER = {
+            DEATH_MESSAGE_KEY,
+            COORDINATES_KEY,
+            TIME_OF_DEATH_KEY,
+            SCORE_KEY,
+            DIMENSION_KEY,
+            LOCATION_KEY
+    };
+
     private final SequencedMap<String, DeathInfoProperty> properties;
 
     public DeathInfo() {
@@ -96,11 +105,12 @@ public class DeathInfo {
     }
 
     private void iterateDisplayProperties(Consumer<DeathInfoProperty> callback) {
-        properties.forEach((s, property) -> {
-            if (!property.getType().displayedInInfoView()) return;
-
-            callback.accept(property);
-        });
+        for (String key : DISPLAY_ORDER) {
+            var property = properties.get(key);
+            if (property != null && property.getType().displayedInInfoView()) {
+                callback.accept(property);
+            }
+        }
     }
 
     public DefaultedList<ItemStack> getPlayerArmor() {
