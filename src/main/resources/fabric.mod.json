@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "id": "deathlog",
   "version": "${version}",
-  "name": "DeathLog",
+  "name": "DeathLog [Fork]",
   "description": "Keeps track of the many embarrassing times you died",
   "authors": [
     "glisco",
-	"(Forked) ShinoiroKanashi"
+	  "(Forked) ShinoiroKanashi"
   ],
   "contact": {
     "issues": "https://github.com/gliscowo/deathlog/issues",

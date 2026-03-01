@@ -13,7 +13,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.toast.SystemToast;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.Text;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -29,11 +28,9 @@ public class ClientDeathLogStorage extends BaseDeathLogStorage implements Direct
 
     public ClientDeathLogStorage(MinecraftClient client) {
         super(client.world.getRegistryManager());
-        var worldSuffix = DigestUtils.sha1Hex(
-                client.isInSingleplayer()
+        var worldSuffix = (client.isInSingleplayer()
                         ? ((MinecraftServerAccessor) client.getServer()).deathlog_getSession().getDirectoryName()
-                        : client.getCurrentServerEntry().name
-        ).substring(0, 10);
+                        : client.getCurrentServerEntry().address).replaceAll("[\\\\/:*?\"<>|]", "_");
 
         this.deathLogFile = FabricLoader.getInstance().getGameDir().resolve("deathlog").resolve("deaths_" + worldSuffix + ".dat").toFile();
         this.deathInfos = load(client.world.getRegistryManager(), deathLogFile).join();
@@ -63,20 +60,20 @@ public class ClientDeathLogStorage extends BaseDeathLogStorage implements Direct
         final MinecraftClient client = MinecraftClient.getInstance();
 
         deathInfo.setProperty(DeathInfo.INVENTORY_KEY, new InventoryProperty(player.getInventory()));
-
         deathInfo.setProperty(DeathInfo.COORDINATES_KEY, new CoordinatesProperty(player.getBlockPos()));
         deathInfo.setProperty(DeathInfo.DIMENSION_KEY, new StringProperty("deathlog.deathinfoproperty.dimension", player.getEntityWorld().getRegistryKey().getValue().toString()));
+        deathInfo.setProperty(DeathInfo.SCORE_KEY, new ScoreProperty(player.getScore(), player.experienceLevel, player.experienceProgress, player.totalExperience));
+        deathInfo.setProperty(DeathInfo.TIME_OF_DEATH_KEY, new StringProperty("deathlog.deathinfoproperty.time_of_death", new Date().toString()));
+        
+        if (deathMessage != null && !deathMessage.getString().isBlank()) { 
+            deathInfo.setProperty(DeathInfo.DEATH_MESSAGE_KEY, new StringProperty("deathlog.deathinfoproperty.death_message", deathMessage.getString()));
+        }
 
         if (client.isInSingleplayer()) {
             deathInfo.setProperty(DeathInfo.LOCATION_KEY, new LocationProperty(((MinecraftServerAccessor) client.getServer()).deathlog_getSession().getDirectoryName(), false));
         } else {
-            deathInfo.setProperty(DeathInfo.LOCATION_KEY, new LocationProperty(client.getCurrentServerEntry().name, true));
+            deathInfo.setProperty(DeathInfo.LOCATION_KEY, new LocationProperty(client.getCurrentServerEntry().address, true));
         }
-
-        deathInfo.setProperty(DeathInfo.SCORE_KEY, new ScoreProperty(player.getScore(), player.experienceLevel, player.experienceProgress, player.totalExperience));
-        deathInfo.setProperty(DeathInfo.DEATH_MESSAGE_KEY, (deathMessage != null && !deathMessage.getString().isBlank()) 
-            ? new StringProperty("deathlog.deathinfoproperty.death_message", deathMessage.getString()) : null);
-        deathInfo.setProperty(DeathInfo.TIME_OF_DEATH_KEY, new StringProperty("deathlog.deathinfoproperty.time_of_death", new Date().toString()));
 
         SpecialPropertyProvider.apply(deathInfo, player);
         DeathInfoCreatedCallback.EVENT.invoker().event(deathInfo);
