@@ -12,6 +12,9 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -29,7 +32,7 @@ public abstract class BaseDeathLogStorage implements DeathLogStorage {
         Util.getIoWorkerExecutor().submit(() -> {
             if (errored) {
                 LOGGER.warn("Attempted to load DeathLog database even though disk operations are disabled");
-                future.complete(null);
+                future.complete(new ArrayList<>());
                 return;
             }
 
@@ -40,20 +43,28 @@ public abstract class BaseDeathLogStorage implements DeathLogStorage {
                     deathNbt = NbtIo.read(file);
 
                     if (deathNbt.getInt("FormatRevision") != FORMAT_REVISION) {
-                        raiseError("Incompatible format");
-
-                        LOGGER.error("Incompatible DeathLog database format detected. Database not loaded and further disk operations disabled");
-
-                        future.complete(null);
-                        return;
+                        LOGGER.warn("DeathLog database format revision is {} but this version expects {}. Data will be loaded but may be incomplete.",
+                                deathNbt.getInt("FormatRevision"), FORMAT_REVISION);
                     }
                 } catch (IOException e) {
-                    raiseError("Disk access failed");
+                    LOGGER.error("Failed to read DeathLog database file, attempting recovery", e);
 
-                    e.printStackTrace();
-                    LOGGER.error("Failed to load DeathLog database, further disk operations have been disabled");
+                    // Back up the corrupted file so the user doesn't lose all data
+                    try {
+                        Path backupPath = file.toPath().resolveSibling(file.getName() + ".corrupted_backup");
+                        Files.move(file.toPath(), backupPath, StandardCopyOption.REPLACE_EXISTING);
+                        LOGGER.warn("Corrupted DeathLog database backed up to {}", backupPath);
+                    } catch (IOException backupException) {
+                        LOGGER.error("Failed to back up corrupted database file", backupException);
+                    }
 
-                    future.completeExceptionally(e);
+                    // Return empty list instead of failing completely — the mod will
+                    // start fresh and save a new file on the next death event.
+                    future.complete(new ArrayList<>());
+                    return;
+                } catch (Exception e) {
+                    LOGGER.error("Unexpected error while reading DeathLog database, starting fresh", e);
+                    future.complete(new ArrayList<>());
                     return;
                 }
             } else {
@@ -63,7 +74,11 @@ public abstract class BaseDeathLogStorage implements DeathLogStorage {
             final var list = new ArrayList<DeathInfo>();
             final NbtList infoList = deathNbt.getList("Deaths", NbtElement.LIST_TYPE);
             for (int i = 0; i < infoList.size(); i++) {
-                list.add(DeathInfo.readFromNbt(infoList.getList(i)));
+                try {
+                    list.add(DeathInfo.readFromNbt(infoList.getList(i)));
+                } catch (Exception e) {
+                    LOGGER.error("Failed to decode death info entry #{}, skipping", i, e);
+                }
             }
 
             future.complete(list);
@@ -88,11 +103,19 @@ public abstract class BaseDeathLogStorage implements DeathLogStorage {
             deathNbt.put("Deaths", infoList);
             deathNbt.putInt("FormatRevision", FORMAT_REVISION);
 
+            // Atomic save: write to a temporary file first, then rename.
+            // This prevents file corruption if the game crashes during the write.
+            File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
             try {
-                NbtIo.write(deathNbt, file);
+                NbtIo.write(deathNbt, tempFile);
+                Files.move(tempFile.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             } catch (IOException e) {
-                e.printStackTrace();
-                LOGGER.error("Failed to save DeathLog database");
+                LOGGER.error("Failed to save DeathLog database", e);
+                // Clean up temp file if it was left behind
+                try {
+                    Files.deleteIfExists(tempFile.toPath());
+                } catch (IOException ignored) {
+                }
             }
         });
     }

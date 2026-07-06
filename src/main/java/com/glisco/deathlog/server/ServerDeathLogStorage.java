@@ -51,7 +51,8 @@ public class ServerDeathLogStorage extends BaseDeathLogStorage {
                     return;
                 }
 
-                deathInfos.put(uuid, load(path.toFile()).join());
+                List<DeathInfo> loaded = load(path.toFile()).join();
+                deathInfos.put(uuid, loaded != null ? loaded : new ArrayList<>());
             });
         } catch (IOException | IllegalArgumentException e) {
             raiseError("Unknown problem");

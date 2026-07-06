@@ -14,6 +14,7 @@ import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -25,7 +26,8 @@ public class ClientDeathLogStorage extends BaseDeathLogStorage implements Direct
 
     public ClientDeathLogStorage() {
         this.deathLogFile = FabricLoader.getInstance().getGameDir().resolve("deaths.dat").toFile();
-        this.deathInfos = load(deathLogFile).join();
+        List<DeathInfo> loaded = load(deathLogFile).join();
+        this.deathInfos = loaded != null ? loaded : new ArrayList<>();
     }
 
     @Override
