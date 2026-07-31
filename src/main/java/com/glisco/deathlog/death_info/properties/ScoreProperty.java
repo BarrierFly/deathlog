@@ -2,22 +2,11 @@ package com.glisco.deathlog.death_info.properties;
 
 import com.glisco.deathlog.death_info.DeathInfoPropertyType;
 import com.glisco.deathlog.death_info.RestorableDeathInfoProperty;
-import io.wispforest.endec.Endec;
-import io.wispforest.endec.StructEndec;
-import io.wispforest.endec.impl.StructEndecBuilder;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 
 public class ScoreProperty implements RestorableDeathInfoProperty {
-
-    public static final StructEndec<ScoreProperty> ENDEC = StructEndecBuilder.of(
-            Endec.INT.fieldOf("score", s -> s.score),
-            Endec.INT.fieldOf("levels", s -> s.levels),
-            Endec.FLOAT.fieldOf("progress", s -> s.progress),
-            Endec.INT.fieldOf("xp", s -> s.xp),
-            ScoreProperty::new
-    );
 
     private final int score;
     private final int levels;
@@ -46,6 +35,14 @@ public class ScoreProperty implements RestorableDeathInfoProperty {
     }
 
     @Override
+    public void writeNbt(NbtCompound nbt) {
+        nbt.putInt("Score", score);
+        nbt.putInt("Levels", levels);
+        nbt.putFloat("Progress", progress);
+        nbt.putInt("XP", xp);
+    }
+
+    @Override
     public String toSearchableString() {
         return xp + " " + levels;
     }
@@ -61,7 +58,7 @@ public class ScoreProperty implements RestorableDeathInfoProperty {
         public static final Type INSTANCE = new Type();
 
         private Type() {
-            super("deathlog.deathinfoproperty.score", Identifier.of("deathlog", "score"));
+            super("deathlog.deathinfoproperty.score", "score");
         }
 
         @Override
@@ -70,8 +67,14 @@ public class ScoreProperty implements RestorableDeathInfoProperty {
         }
 
         @Override
-        public StructEndec<ScoreProperty> endec() {
-            return ScoreProperty.ENDEC;
+        public ScoreProperty readFromNbt(NbtCompound nbt) {
+
+            int score = nbt.getInt("Score");
+            int levels = nbt.getInt("Levels");
+            float progress = nbt.getFloat("Progress");
+            int xp = nbt.getInt("XP");
+
+            return new ScoreProperty(score, levels, progress, xp);
         }
     }
 }

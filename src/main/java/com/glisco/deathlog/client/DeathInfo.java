@@ -1,12 +1,15 @@
 package com.glisco.deathlog.client;
 
 import com.glisco.deathlog.death_info.DeathInfoProperty;
+import com.glisco.deathlog.death_info.DeathInfoPropertySerializer;
 import com.glisco.deathlog.death_info.RestorableDeathInfoProperty;
 import com.glisco.deathlog.death_info.properties.InventoryProperty;
-import com.glisco.deathlog.death_info.properties.TrinketComponentProperty;
-import io.wispforest.endec.Endec;
-import io.wispforest.endec.impl.StructEndecBuilder;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.collection.DefaultedList;
@@ -16,23 +19,6 @@ import java.util.function.Consumer;
 
 public class DeathInfo {
 
-    public static final Endec<DeathInfo> ENDEC = StructEndecBuilder.of(
-            sequencedMapEndec(DeathInfoProperty.ENDEC).fieldOf("properties", info -> info.properties),
-            DeathInfo::new
-    );
-
-    public static final Endec<DeathInfo> PARTIAL_ENDEC = StructEndecBuilder.of(
-            sequencedMapEndec(DeathInfoProperty.ENDEC).xmap(properties -> {
-                SequencedMap<String, DeathInfoProperty> copy = new LinkedHashMap<>();
-                properties.forEach((key, property) -> {
-                    if (property instanceof InventoryProperty || property instanceof TrinketComponentProperty) return;
-                    copy.put(key, property);
-                });
-                return copy;
-            }, map -> map).fieldOf("properties", info -> info.properties),
-            DeathInfo::new
-    );
-
     public static final String COORDINATES_KEY = "coordinates";
     public static final String DIMENSION_KEY = "dimension";
     public static final String LOCATION_KEY = "location";
@@ -41,14 +27,69 @@ public class DeathInfo {
     public static final String TIME_OF_DEATH_KEY = "time_of_death";
     public static final String INVENTORY_KEY = "inventory";
 
-    private final SequencedMap<String, DeathInfoProperty> properties;
+    private final Map<String, DeathInfoProperty> properties;
 
     public DeathInfo() {
         this.properties = new LinkedHashMap<>();
     }
 
-    public DeathInfo(SequencedMap<String, DeathInfoProperty> properties) {
-        this.properties = properties;
+    public static DeathInfo readFromNbt(NbtList nbt) {
+        return readFromNbt(nbt, null);
+    }
+
+    public static DeathInfo readFromNbt(NbtList nbt, RegistryWrapper.WrapperLookup registries) {
+        final DeathInfo deathInfo = new DeathInfo();
+        nbt.forEach(element -> {
+            final var parsed = DeathInfoPropertySerializer.load((NbtCompound) element, registries);
+            deathInfo.setProperty(parsed.getRight(), parsed.getLeft());
+        });
+        return deathInfo;
+    }
+
+    public NbtList writeNbt() {
+        return writeNbt(null);
+    }
+
+    public NbtList writeNbt(RegistryWrapper.WrapperLookup registries) {
+        final NbtList nbt = new NbtList();
+        properties.forEach((s, property) -> nbt.add(DeathInfoPropertySerializer.save(property, s, registries)));
+        return nbt;
+    }
+
+    public static DeathInfo read(PacketByteBuf buffer) {
+        return read(buffer, null);
+    }
+
+    public static DeathInfo read(PacketByteBuf buffer, RegistryWrapper.WrapperLookup registries) {
+        var nbt = buffer.readNbt();
+        if (nbt == null) return new DeathInfo();
+        return readFromNbt(nbt.getList("DeathInfo", NbtElement.COMPOUND_TYPE), registries);
+    }
+
+    public void write(PacketByteBuf buffer) {
+        write(buffer, null);
+    }
+
+    public void write(PacketByteBuf buffer, RegistryWrapper.WrapperLookup registries) {
+        final var nbt = new NbtCompound();
+        nbt.put("DeathInfo", writeNbt(registries));
+        buffer.writeNbt(nbt);
+    }
+
+    public void writePartial(PacketByteBuf buffer) {
+        writePartial(buffer, null);
+    }
+
+    public void writePartial(PacketByteBuf buffer, RegistryWrapper.WrapperLookup registries) {
+        final var list = new NbtList();
+        properties.forEach((s, property) -> {
+            if (property instanceof InventoryProperty ) return;
+            list.add(DeathInfoPropertySerializer.save(property, s, registries));
+        });
+
+        var nbt = new NbtCompound();
+        nbt.put("DeathInfo", list);
+        buffer.writeNbt(nbt);
     }
 
     public void restore(ServerPlayerEntity player) {
@@ -113,20 +154,5 @@ public class DeathInfo {
         var propertyOptional = getProperty(INVENTORY_KEY);
         if (propertyOptional.isEmpty()) return DefaultedList.of();
         return ((InventoryProperty) propertyOptional.get()).getPlayerItems();
-    }
-
-    private static <T> Endec<SequencedMap<String, T>> sequencedMapEndec(Endec<T> in) {
-        return Endec.of((ctx, serializer, map) -> {
-            try (var mapState = serializer.map(ctx, in, map.size())) {
-                map.forEach(mapState::entry);
-            }
-        }, (ctx, deserializer) -> {
-            var mapState = deserializer.map(ctx, in);
-
-            var map = new LinkedHashMap<String, T>(mapState.estimatedSize());
-            mapState.forEachRemaining(entry -> map.put(entry.getKey(), entry.getValue()));
-
-            return map;
-        });
     }
 }

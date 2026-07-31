@@ -2,20 +2,10 @@ package com.glisco.deathlog.death_info.properties;
 
 import com.glisco.deathlog.death_info.DeathInfoProperty;
 import com.glisco.deathlog.death_info.DeathInfoPropertyType;
-import io.wispforest.endec.Endec;
-import io.wispforest.endec.StructEndec;
-import io.wispforest.endec.impl.StructEndecBuilder;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 
 public class LocationProperty implements DeathInfoProperty {
-
-    public static final StructEndec<LocationProperty> ENDEC = StructEndecBuilder.of(
-            Endec.STRING.fieldOf("location", s -> s.location),
-            Endec.BOOLEAN.fieldOf("multiplayer", s -> s.multiplayer),
-            LocationProperty::new
-    );
 
     private final String location;
     private final boolean multiplayer;
@@ -41,6 +31,12 @@ public class LocationProperty implements DeathInfoProperty {
     }
 
     @Override
+    public void writeNbt(NbtCompound nbt) {
+        nbt.putString("Location", location);
+        nbt.putBoolean("Multiplayer", multiplayer);
+    }
+
+    @Override
     public String toSearchableString() {
         return location;
     }
@@ -50,7 +46,7 @@ public class LocationProperty implements DeathInfoProperty {
         public static final Type INSTANCE = new Type();
 
         private Type() {
-            super("deathlog.deathinfoproperty.location", Identifier.of("deathlog", "location"));
+            super("deathlog.deathinfoproperty.location", "location");
         }
 
         @Override
@@ -59,8 +55,10 @@ public class LocationProperty implements DeathInfoProperty {
         }
 
         @Override
-        public StructEndec<LocationProperty> endec() {
-            return LocationProperty.ENDEC;
+        public LocationProperty readFromNbt(NbtCompound nbt) {
+            String location = nbt.getString("Location");
+            boolean multiplayer = nbt.getBoolean("Multiplayer");
+            return new LocationProperty(location, multiplayer);
         }
     }
 }
