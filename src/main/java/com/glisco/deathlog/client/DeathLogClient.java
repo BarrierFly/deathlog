@@ -37,7 +37,7 @@ public class DeathLogClient implements ClientModInitializer {
             }
         }
 
-        CONFIG = DeathLogConfigModel.createAndLoad();
+        CONFIG = DeathLogConfigModel.load();
     }
 
     public static final KeyBinding OPEN_DEATH_SCREEN = new KeyBinding("key.deathlog.death_screen", GLFW.GLFW_KEY_END, "key.categories.misc");

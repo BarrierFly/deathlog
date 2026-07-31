@@ -11,7 +11,6 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.command.CommandSource;
@@ -90,11 +89,11 @@ public class DeathLogServer implements DedicatedServerModInitializer {
     }
 
     private static Predicate<ServerCommandSource> hasPermission(String node) {
-        return DeathLogCommon.usePermissions() ? Permissions.require(node, 4) : serverCommandSource -> serverCommandSource.hasPermissionLevel(4);
+        return source -> source.hasPermissionLevel(4);
     }
 
     public static boolean hasPermission(ServerPlayerEntity player, String node) {
-        return DeathLogCommon.usePermissions() ? Permissions.check(player, node, 4) : player.hasPermissionLevel(4);
+        return player.hasPermissionLevel(4);
     }
 
     private static int executeRestoreLatest(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
