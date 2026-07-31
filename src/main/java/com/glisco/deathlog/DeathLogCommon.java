@@ -2,7 +2,6 @@ package com.glisco.deathlog;
 
 import com.glisco.deathlog.death_info.DeathInfoPropertySerializer;
 import com.glisco.deathlog.death_info.SpecialPropertyProvider;
-import com.glisco.deathlog.death_info.properties.TrinketComponentProperty;
 import com.glisco.deathlog.network.DeathLogPackets;
 import com.glisco.deathlog.storage.DeathLogStorage;
 import net.fabricmc.api.ModInitializer;
@@ -16,11 +15,10 @@ public class DeathLogCommon implements ModInitializer {
     @Override
     public void onInitialize() {
         if (FabricLoader.getInstance().isModLoaded("trinkets")) {
-            SpecialPropertyProvider.register(TrinketComponentProperty::apply);
-            DeathInfoPropertySerializer.register(TrinketComponentProperty.Type.INSTANCE.getId(), TrinketComponentProperty.Type.INSTANCE);
+            // Trinkets disabled for this build
         }
 
-        usePermissions = FabricLoader.getInstance().isModLoaded("fabric-permissions-api-v0");
+        usePermissions = false; // Permissions API disabled
 
         DeathLogPackets.Server.registerCommonListeners();
     }
