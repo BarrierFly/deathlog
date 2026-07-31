@@ -117,3 +117,9 @@ run/
 
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar
+
+# OWO removal build directories
+.build/
+.work/
+.output/
+
