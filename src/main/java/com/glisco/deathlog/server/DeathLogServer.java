@@ -11,7 +11,6 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
-import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -43,7 +42,7 @@ public class DeathLogServer implements DedicatedServerModInitializer {
     @Override
     public void onInitializeServer() {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            storage = new ServerDeathLogStorage();
+            storage = new ServerDeathLogStorage(server.getRegistryManager());
             DeathLogCommon.setStorage(storage);
         });
 
@@ -53,20 +52,15 @@ public class DeathLogServer implements DedicatedServerModInitializer {
                                     .then(argument("search_term", StringArgumentType.string())
                                             .executes(context -> executeList(context, StringArgumentType.getString(context, "search_term"))))))
                     .then(literal("view").requires(hasPermission("deathlog.view")).then(createProfileArgument().executes(context -> {
-                        var player = context.getSource().getPlayer();
-                        var profileId = getProfile(context).getId();
-
-                        DeathLogPackets.CHANNEL.serverHandle(player).send(new DeathLogPackets.OpenScreen(
-                                profileId,
-                                player.getServer().getPlayerManager().getPlayer(profileId) != null,
-                                DeathLogServer.getStorage().getDeathInfoList(profileId)
-                        ));
+                        DeathLogPackets.Server.openScreen(getProfile(context).getId(), context.getSource().getPlayer());
                         return 0;
                     }))).then(literal("restore").requires(hasPermission("deathlog.restore")).then(createProfileArgument().then(argument("index", IntegerArgumentType.integer()).executes(context -> {
                         int index = IntegerArgumentType.getInteger(context, "index");
                         return executeRestore(context, index);
                     })).then(literal("latest").executes(DeathLogServer::executeRestoreLatest)))));
         });
+
+        DeathLogPackets.Server.registerDedicatedListeners();
     }
 
     private int executeList(CommandContext<ServerCommandSource> context, @Nullable String filter) throws CommandSyntaxException {
@@ -98,11 +92,11 @@ public class DeathLogServer implements DedicatedServerModInitializer {
     }
 
     private static Predicate<ServerCommandSource> hasPermission(String node) {
-        return DeathLogCommon.usePermissions() ? Permissions.require(node, 4) : serverCommandSource -> serverCommandSource.hasPermissionLevel(4);
+        return source -> source.hasPermissionLevel(4);
     }
 
     public static boolean hasPermission(ServerPlayerEntity player, String node) {
-        return DeathLogCommon.usePermissions() ? Permissions.check(player, node, 4) : player.hasPermissionLevel(4);
+        return player.hasPermissionLevel(4);
     }
 
     private static int executeRestoreLatest(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
