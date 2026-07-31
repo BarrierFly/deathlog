@@ -1,0 +1,65 @@
+plugins {
+    id 'fabric-loom' version '1.15-SNAPSHOT'
+    id 'maven-publish'
+}
+
+version = "fork.${project.fork_version}+${project.minecraft_version}"
+group = project.maven_group
+
+repositories {
+    maven { url = "https://maven.terraformersmc.com/releases/releases/" }
+    maven { url = "https://maven.ladysnake.org/releases" }    maven { url = "https://jitpack.io" }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+
+    mappings "net.fabricmc:yarn:${project.mappings_version}:v2"
+
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+    // Fabric API
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // Mod Menu
+    modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+
+    // owo-lib
+    // permissions api (compile only)
+    modCompileOnly 'me.lucko:fabric-permissions-api:0.6.1'
+}
+
+processResources {
+    inputs.property "version", project.version
+    filteringCharset "UTF-8"
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = "UTF-8"
+    it.options.release = 21
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    withSourcesJar()
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.archives_base_name}" }
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = project.archives_base_name
+            from components.java
+        }
+    }
+}
