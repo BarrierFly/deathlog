@@ -5,9 +5,9 @@ import com.glisco.deathlog.death_info.SpecialPropertyProvider;
 import com.glisco.deathlog.death_info.properties.*;
 import com.glisco.deathlog.storage.BaseDeathLogStorage;
 import com.glisco.deathlog.storage.DeathInfoCreatedCallback;
-import io.wispforest.owo.Owo;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.text.Text;
 import org.apache.commons.io.FilenameUtils;
 import org.jetbrains.annotations.Nullable;
@@ -22,8 +22,8 @@ public class ServerDeathLogStorage extends BaseDeathLogStorage {
     private final Map<UUID, List<DeathInfo>> deathInfos;
     private final Path deathLogDir;
 
-    public ServerDeathLogStorage() {
-        super(Owo.currentServer().getRegistryManager());
+    public ServerDeathLogStorage(RegistryWrapper.WrapperLookup registries) {
+        super(registries);
         this.deathInfos = new HashMap<>();
         this.deathLogDir = FabricLoader.getInstance().getGameDir().resolve("deaths").toAbsolutePath();
 
@@ -53,7 +53,7 @@ public class ServerDeathLogStorage extends BaseDeathLogStorage {
                     return;
                 }
 
-                deathInfos.put(uuid, load(Owo.currentServer().getRegistryManager(), path.toFile()).join());
+                deathInfos.put(uuid, load(path.toFile()).join());
             });
         } catch (IOException | IllegalArgumentException e) {
             raiseError("Unknown problem");
@@ -71,7 +71,7 @@ public class ServerDeathLogStorage extends BaseDeathLogStorage {
     @Override
     public void delete(DeathInfo info, UUID profile) {
         deathInfos.get(profile).remove(info);
-        save(Owo.currentServer().getRegistryManager(), deathLogDir.resolve(profile.toString() + ".dat").toFile(), deathInfos.get(profile));
+        save(deathLogDir.resolve(profile.toString() + ".dat").toFile(), deathInfos.get(profile));
     }
 
     @Override
@@ -91,7 +91,7 @@ public class ServerDeathLogStorage extends BaseDeathLogStorage {
         DeathInfoCreatedCallback.EVENT.invoker().event(deathInfo);
 
         deathInfos.computeIfAbsent(player.getUuid(), uuid -> new ArrayList<>()).add(deathInfo);
-        save(Owo.currentServer().getRegistryManager(), deathLogDir.resolve(player.getUuid().toString() + ".dat").toFile(), deathInfos.get(player.getUuid()));
+        save(deathLogDir.resolve(player.getUuid().toString() + ".dat").toFile(), deathInfos.get(player.getUuid()));
     }
 
     @Override

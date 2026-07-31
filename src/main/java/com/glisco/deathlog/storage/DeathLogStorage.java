@@ -2,7 +2,7 @@ package com.glisco.deathlog.storage;
 
 import com.glisco.deathlog.client.DeathInfo;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,5 +21,7 @@ public interface DeathLogStorage {
 
     boolean isErrored();
 
-    DynamicRegistryManager registries();
+    RegistryWrapper.WrapperLookup registries();
+
+    String getErrorCondition();
 }

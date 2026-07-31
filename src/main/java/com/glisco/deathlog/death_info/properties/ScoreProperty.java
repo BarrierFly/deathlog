@@ -2,27 +2,16 @@ package com.glisco.deathlog.death_info.properties;
 
 import com.glisco.deathlog.death_info.DeathInfoPropertyType;
 import com.glisco.deathlog.death_info.RestorableDeathInfoProperty;
-import io.wispforest.endec.Endec;
-import io.wispforest.endec.StructEndec;
-import io.wispforest.endec.impl.StructEndecBuilder;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 
 public class ScoreProperty implements RestorableDeathInfoProperty {
-
-    public static final StructEndec<ScoreProperty> ENDEC = StructEndecBuilder.of(
-            Endec.INT.fieldOf("score", s -> s.score),
-            Endec.INT.fieldOf("levels", s -> s.levels),
-            Endec.FLOAT.fieldOf("progress", s -> s.progress),
-            Endec.INT.fieldOf("xp", s -> s.xp),
-            (score, levels, progress, xp) -> new ScoreProperty(score, levels, progress, xp)
-    );
 
     private final int score;
     private final int levels;
     private final float progress;
+
     private final int xp;
 
     public ScoreProperty(int score, int level, float progress, int xp) {
@@ -39,16 +28,18 @@ public class ScoreProperty implements RestorableDeathInfoProperty {
 
     @Override
     public Text formatted() {
-        var scoreText = Text.literal(String.valueOf(this.score));
+        return Text.translatable(
+                "deathlog.deathinfoproperty.score.value",
+                score, levels, xp
+        );
+    }
 
-        return Text.literal("")
-                .append(scoreText)
-                .append(" ")
-                .append(Text.literal("(").formatted(Formatting.GRAY))
-                .append(Text.literal(String.valueOf(this.levels)).formatted(Formatting.GRAY))
-                .append(Text.literal(" levels, ").formatted(Formatting.GRAY))
-                .append(Text.literal(String.valueOf(this.xp)).formatted(Formatting.GRAY))
-                .append(Text.literal(" xp)").formatted(Formatting.GRAY));
+    @Override
+    public void writeNbt(NbtCompound nbt) {
+        nbt.putInt("Score", score);
+        nbt.putInt("Levels", levels);
+        nbt.putFloat("Progress", progress);
+        nbt.putInt("XP", xp);
     }
 
     @Override
@@ -67,7 +58,7 @@ public class ScoreProperty implements RestorableDeathInfoProperty {
         public static final Type INSTANCE = new Type();
 
         private Type() {
-            super("deathlog.deathinfoproperty.score", Identifier.of("deathlog", "score"));
+            super("deathlog.deathinfoproperty.score", "score");
         }
 
         @Override
@@ -76,8 +67,14 @@ public class ScoreProperty implements RestorableDeathInfoProperty {
         }
 
         @Override
-        public StructEndec<ScoreProperty> endec() {
-            return ScoreProperty.ENDEC;
+        public ScoreProperty readFromNbt(NbtCompound nbt) {
+
+            int score = nbt.getInt("Score", 0);
+            int levels = nbt.getInt("Levels", 0);
+            float progress = nbt.getFloat("Progress", 0F);
+            int xp = nbt.getInt("XP", 0);
+
+            return new ScoreProperty(score, levels, progress, xp);
         }
     }
 }
