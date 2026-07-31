@@ -10,8 +10,10 @@ import java.nio.file.Path;
 public class DeathLogConfigModel {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve("deathlog.json");
+
     public boolean screenshotsEnabled = false;
     public boolean useLegacyDeathDetection = false;
+
     public static DeathLogConfigModel load() {
         if (Files.exists(PATH)) {
             try { return GSON.fromJson(Files.readString(PATH), DeathLogConfigModel.class); }
@@ -19,6 +21,7 @@ public class DeathLogConfigModel {
         }
         return new DeathLogConfigModel();
     }
+
     public void save() {
         try { Files.writeString(PATH, GSON.toJson(this)); }
         catch (IOException ignored) {}

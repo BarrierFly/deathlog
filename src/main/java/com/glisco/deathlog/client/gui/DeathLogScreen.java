@@ -3,251 +3,126 @@ package com.glisco.deathlog.client.gui;
 import com.glisco.deathlog.client.DeathInfo;
 import com.glisco.deathlog.network.RemoteDeathLogStorage;
 import com.glisco.deathlog.storage.DirectDeathLogStorage;
-import io.wispforest.owo.config.ui.ConfigScreen;
-import io.wispforest.owo.ui.base.BaseUIModelScreen;
-import io.wispforest.owo.ui.component.*;
-import io.wispforest.owo.ui.container.Containers;
-import io.wispforest.owo.ui.container.FlowLayout;
-import io.wispforest.owo.ui.container.GridLayout;
-import io.wispforest.owo.ui.core.Insets;
-import io.wispforest.owo.ui.core.Positioning;
-import io.wispforest.owo.ui.core.Sizing;
-import io.wispforest.owo.ui.core.Surface;
-import io.wispforest.owo.ui.parsing.UIParsing;
-import io.wispforest.owo.util.Observable;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.item.TooltipContext;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.registry.Registries;
 
-import java.util.Locale;
-import java.util.Map;
-
-public class DeathLogScreen extends BaseUIModelScreen<FlowLayout> {
-
+public class DeathLogScreen extends Screen {
+    private static final Identifier INVENTORY_TEXTURE = new Identifier("deathlog", "textures/gui/inventory_overlay.png");
     private final Screen parent;
     private final DirectDeathLogStorage storage;
-
-    private FlowLayout detailPanel;
-
-    private final Observable<String> currentSearchTerm = Observable.of("");
+    private DeathListWidget deathList;
+    private ItemStack hoveredStack = null;
     private boolean canRestore = true;
 
     public DeathLogScreen(Screen parent, DirectDeathLogStorage storage) {
-        super(FlowLayout.class, DataSource.asset(new Identifier("deathlog", "deathlog")));
+        super(Text.of("Death Log"));
         this.parent = parent;
         this.storage = storage;
-
-        this.currentSearchTerm.observe(s -> {
-            this.buildDeathList();
-        });
-    }
-
-    @Override
-    protected void init() {
-        super.init();
-
-        var configButton = this.uiAdapter.rootComponent.childById(ButtonComponent.class, "config-button");
-        if (configButton != null) {
-            if (this.height >= 275) {
-                configButton.positioning(Positioning.relative(100, 100)).margins(Insets.none());
-            } else {
-                configButton.positioning(Positioning.relative(100, 0)).margins(Insets.top(-5));
-            }
-        }
-    }
-
-    @Override
-    @SuppressWarnings("DataFlowIssue")
-    protected void build(FlowLayout rootComponent) {
-        this.detailPanel = rootComponent.childById(FlowLayout.class, "detail-panel");
-
-        rootComponent.childById(TextBoxComponent.class, "search-box").<TextBoxComponent>configure(searchBox -> {
-            searchBox.onChanged().subscribe(value -> {
-                this.currentSearchTerm.set(value.toLowerCase(Locale.ROOT));
-            });
-            searchBox.text(this.storage.getDefaultFilter());
-        });
-
-        rootComponent.childById(ButtonComponent.class, "config-button").onPress(button -> {
-            this.client.setScreen(ConfigScreen.getProvider("deathlog").apply(this));
-        });
-
-        this.uiAdapter.rootComponent.childById(LabelComponent.class, "death-count-label").text(
-                Text.translatable("text.deathlog.death_list_title", this.storage.getDeathInfoList().size())
-        );
-    }
-
-    public void updateInfo(DeathInfo info, int index) {
-        this.storage.getDeathInfoList().set(index, info);
-        this.selectInfo(this.storage.getDeathInfoList().get(index));
     }
 
     public void disableRestoring() {
         this.canRestore = false;
+        if (this.deathList != null) this.deathList.restoreEnabled = false;
     }
 
-    private void buildDeathList() {
-        this.uiAdapter.rootComponent.childById(FlowLayout.class, "death-list").<FlowLayout>configure(deathList -> {
-            deathList.clearChildren();
-
-            for (int i = 0; i < this.storage.getDeathInfoList().size(); i++) {
-                final int infoIndex = i;
-                var deathInfo = this.storage.getDeathInfoList().get(infoIndex);
-
-                if (!this.currentSearchTerm.get().isBlank() && !deathInfo.createSearchString().contains(this.currentSearchTerm.get())) {
-                    continue;
-                }
-
-                deathList.child(this.model.expandTemplate(
-                        DeathListEntryContainer.class,
-                        "death-list-entry",
-                        Map.of(
-                                "death-time", deathInfo.getListName().getString(),
-                                "death-message", deathInfo.getTitle().getString()
-                        )
-                ).<DeathListEntryContainer>configure(container -> {
-                    container.onSelected().subscribe(c -> {
-                        this.selectInfo(this.storage.getDeathInfoList().get(infoIndex));
-                    });
-
-                    container.mouseDown().subscribe((mouseX, mouseY, button) -> {
-                        if (button != GLFW.GLFW_MOUSE_BUTTON_RIGHT) return false;
-
-                        var root = this.uiAdapter.rootComponent;
-                        DropdownComponent.openContextMenu(
-                                this,
-                                root, FlowLayout::child,
-                                container.x() - root.padding().get().left() + mouseX,
-                                container.y() - root.padding().get().top() + mouseY,
-                                dropdown -> {
-                                    dropdown.surface(Surface.flat(0xBB000000).and(Surface.outline(0xA75F5F5F)));
-
-                                    if (this.canRestore) {
-                                        dropdown.button(Text.translatable("text.deathlog.action.restore"), dropdown_ -> {
-                                            this.storage.restore(infoIndex);
-                                            dropdown.remove();
-                                        });
-                                    }
-
-                                    dropdown.button(Text.translatable("text.deathlog.action.delete"), dropdown_ -> {
-                                        this.storage.delete(deathInfo);
-                                        this.buildDeathList();
-                                        dropdown.remove();
-                                    });
-                                }
-                        );
-
-                        return true;
-                    });
-                }));
-            }
-        });
-    }
-
-    private void selectInfo(DeathInfo info) {
-        if (this.storage instanceof RemoteDeathLogStorage remoteStorage) remoteStorage.fetchCompleteInfo(info);
-
-        this.detailPanel.<FlowLayout>configure(panel -> {
-            panel.clearChildren();
-
-            if (info.isPartial()) {
-                panel.child(Components.label(Text.translatable("text.deathlog.death_info_loading")).margins(Insets.top(15)));
-                return;
-            }
-
-            panel.child(Components.label(info.getTitle()).shadow(true).margins(Insets.of(15, 10, 0, 0)));
-
-            FlowLayout leftColumn;
-            FlowLayout rightColumn;
-            panel.child(Containers.horizontalFlow(Sizing.content(), Sizing.content())
-                    .child(leftColumn = Containers.verticalFlow(Sizing.content(), Sizing.content()))
-                    .child(rightColumn = Containers.verticalFlow(Sizing.content(), Sizing.content())));
-
-            leftColumn.gap(2);
-            for (var text : info.getLeftColumnText()) {
-                leftColumn.child(Components.label(text).shadow(true));
-            }
-
-            rightColumn.gap(2).margins(Insets.left(5));
-            for (var text : info.getRightColumnText()) {
-                rightColumn.child(Components.label(text));
-            }
-
-            FlowLayout itemContainer;
-            panel.child(itemContainer = Containers.verticalFlow(Sizing.content(), Sizing.content()));
-            itemContainer.margins(Insets.top(5));
-
-            itemContainer.child(Components.texture(new Identifier("deathlog", "textures/gui/inventory_overlay.png"), 0, 0, 210, 107));
-
-            FlowLayout armorFlow;
-            itemContainer.child(armorFlow = Containers.verticalFlow(Sizing.content(), Sizing.content()));
-
-            armorFlow.positioning(Positioning.absolute(185, 28));
-            for (int i = 0; i < info.getPlayerArmor().size(); i++) {
-                armorFlow.child(0, this.makeItem(info.getPlayerArmor().get(i), Insets.of(1)));
-            }
-
-            GridLayout itemGrid;
-            itemContainer.child(itemGrid = Containers.grid(Sizing.content(), Sizing.content(), 4, 9));
-
-            var inventory = info.getPlayerItems();
-
-            itemGrid.positioning(Positioning.absolute(7, 24));
-            for (int i = 0; i < 9; i++) {
-                itemGrid.child(this.makeItem(inventory.get(i), Insets.of(5, 1, 1, 1)), 3, i);
-            }
-
-            for (int i = 0; i < 27; i++) {
-                itemGrid.child(this.makeItem(inventory.get(9 + i), Insets.of(1)), i / 9, i % 9);
-            }
-
-            if (!inventory.get(36).isEmpty()) {
-                itemContainer.child(this.makeItem(inventory.get(36), Insets.none()).positioning(Positioning.absolute(186, 8)));
-            }
-        });
-    }
-
-    private ItemComponent makeItem(ItemStack stack, Insets margins) {
-        var item = Components.item(stack).showOverlay(true);
-        item.margins(margins);
-
-        if (!stack.isEmpty()) {
-            var tooltip = stack.getTooltip(client.player, client.options.advancedItemTooltips ? TooltipContext.Default.ADVANCED : TooltipContext.Default.BASIC);
-            tooltip.add(Text.translatable(this.client.player.isCreative() ? "text.deathlog.action.give_item.spawn" : "text.deathlog.action.give_item.copy_give"));
-            item.tooltip(tooltip);
-
-            item.mouseDown().subscribe((mouseX, mouseY, button) -> {
-                if (button != GLFW.GLFW_MOUSE_BUTTON_MIDDLE) return false;
-
-                if (this.client.player.isCreative()) {
-                    this.client.interactionManager.dropCreativeStack(stack);
-                } else {
-
-                    String command = "/give " + client.player.getName().getString() +
-                            " " +
-                            Registries.ITEM.getId(stack.getItem()) +
-                            stack.getOrCreateNbt().toString();
-
-                    this.client.keyboard.setClipboard(command);
-                }
-
-                return true;
-            });
-        }
-
-        return item;
+    public void updateInfo(DeathInfo info, int index) {
+        this.storage.getDeathInfoList().set(index, info);
     }
 
     @Override
-    public void close() {
-        this.client.setScreen(this.parent);
+    protected void init() {
+        this.deathList = new DeathListWidget(client, 220, this.height, 32, this.height - 68, 30, storage);
+        this.deathList.setLeftPos(10);
+        if (!this.canRestore) this.deathList.restoreEnabled = false;
+        this.addDrawableChild(deathList);
+
+        this.addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), button -> this.close())
+                .dimensions(this.width / 2 - 50, this.height - 28, 100, 20).build());
+
+        final TextFieldWidget searchField = new TextFieldWidget(textRenderer, 10, this.height - 63, 220, 20, Text.of(""));
+        searchField.setChangedListener(s -> searchField.setEditableColor(deathList.filter(s) ? 0xFFFFFF : 0xFF2222));
+        searchField.setText(this.storage.getDefaultFilter());
+        this.addDrawableChild(searchField);
     }
 
-    static {
-        UIParsing.registerFactory("death-list-entry-container", element -> new DeathListEntryContainer());
+    @Override
+    public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+        this.renderBackground(matrices);
+        final var originX = 230 + 30;
+        final var originY = Math.min(this.height - 40, 300);
+
+        if (deathList.getSelectedOrNull() != null) {
+            DeathInfo info = deathList.getSelectedOrNull().getInfo();
+            if (info.isPartial() && this.storage instanceof RemoteDeathLogStorage remote) {
+                remote.fetchCompleteInfo(info);
+                textRenderer.draw(matrices, Text.translatable("text.deathlog.death_info_loading"), originX, 16, 0xFFFFFF);
+            } else {
+                textRenderer.draw(matrices, info.getTitle(), originX, 16, 0xFFFFFF);
+                final var left = info.getLeftColumnText();
+                for (int i = 0; i < left.size(); i++)
+                    textRenderer.draw(matrices, left.get(i), originX, 30 + 14 * i, 0xFFFFFF);
+                final var right = info.getRightColumnText();
+                for (int i = 0; i < right.size(); i++)
+                    textRenderer.draw(matrices, right.get(i), originX + 100, 30 + 14 * i, 0xFFFFFF);
+
+                RenderSystem.setShaderTexture(0, INVENTORY_TEXTURE);
+                drawTexture(matrices, originX - 8, originY - 83, 0, 0, 210, 107);
+                hoveredStack = null;
+                for (int i = 0; i < info.getPlayerItems().size() - 1; i++) {
+                    final ItemStack stack = info.getPlayerItems().get(i);
+                    if (stack.isEmpty()) continue;
+                    final var sx = originX + 18 * (i % 9);
+                    final var sy = originY + (i < 9 ? 0 : -58 + 18 * (i / 9 - 1));
+                    renderSlot(matrices, stack, sx, sy, mouseX, mouseY);
+                }
+                if (!info.getPlayerItems().get(36).isEmpty())
+                    renderSlot(matrices, info.getPlayerItems().get(36), originX + 178, originY - 75, mouseX, mouseY);
+                for (int i = 0; i < info.getPlayerArmor().size(); i++) {
+                    final ItemStack stack = info.getPlayerArmor().get(i);
+                    if (stack.isEmpty()) continue;
+                    renderSlot(matrices, stack, originX + 178, originY - 18 * i, mouseX, mouseY);
+                }
+                if (hoveredStack != null)
+                    renderTooltip(matrices, hoveredStack, mouseX, mouseY);
+            }
+        }
+        super.render(matrices, mouseX, mouseY, delta);
+        textRenderer.draw(matrices, Text.translatable("text.deathlog.death_list_title", storage.getDeathInfoList().size()), 16, this.height - 80, 0xFFFFFF);
     }
+
+    private void renderSlot(MatrixStack m, ItemStack stack, int x, int y, int mx, int my) {
+        if (mx > x && mx < x + 16 && my > y && my < y + 16) {
+            fill(m, x, y, x + 16, y + 16, 0xFFBBBBBB);
+            this.hoveredStack = stack.copy();
+        }
+        itemRenderer.renderGuiItemIcon(m, stack, x, y);
+        itemRenderer.renderGuiItemOverlay(m, textRenderer, stack, x, y);
+    }
+
+    @Override
+    public boolean mouseClicked(double mx, double my, int button) {
+        if (hoveredStack != null && button == 2) {
+            if (client.player.isCreative()) {
+                client.interactionManager.dropCreativeStack(hoveredStack);
+            } else {
+                var cmd = new StringBuilder("/give ").append(client.player.getName().getString()).append(" ");
+                cmd.append(Registries.ITEM.getId(hoveredStack.getItem()));
+                cmd.append(hoveredStack.getOrCreateNbt().toString());
+                client.keyboard.setClipboard(cmd.toString());
+            }
+            return true;
+        }
+        return super.mouseClicked(mx, my, button);
+    }
+
+    @Override
+    public void close() { client.setScreen(parent); }
 }
