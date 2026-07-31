@@ -22,7 +22,7 @@ import org.lwjgl.glfw.GLFW;
 @Environment(EnvType.CLIENT)
 public class DeathLogClient implements ClientModInitializer {
 
-    public static final com.glisco.deathlog.client.DeathLogConfig CONFIG = com.glisco.deathlog.client.DeathLogConfig.createAndLoad();
+    public static final DeathLogConfigModel CONFIG = DeathLogConfigModel.createAndLoad();
 
     public static final KeyBinding OPEN_DEATH_SCREEN = new KeyBinding("key.deathlog.death_screen", GLFW.GLFW_KEY_END, KeyBinding.Category.MISC);
     private static ClientDeathLogStorage storage;

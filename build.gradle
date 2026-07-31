@@ -9,7 +9,6 @@ group = project.maven_group
 repositories {
     maven { url = "https://maven.terraformersmc.com/releases/" }
     maven { url = "https://maven.ladysnake.org/releases" }
-    maven { url = "https://maven.wispforest.io/releases" }
     maven { url = "https://jitpack.io" }
 }
 
@@ -26,9 +25,6 @@ dependencies {
     // Mod Menu
     modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 
-    // owo-lib
-    modImplementation annotationProcessor("io.wispforest:owo-lib:${project.owo_version}")
-    include "io.wispforest:owo-sentinel:${project.owo_version}"
 
     // permissions api (compile only)
     modCompileOnly 'me.lucko:fabric-permissions-api:0.6.1'
