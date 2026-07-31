@@ -4,7 +4,6 @@ import com.glisco.deathlog.death_info.DeathInfoProperty;
 import com.glisco.deathlog.death_info.DeathInfoPropertySerializer;
 import com.glisco.deathlog.death_info.RestorableDeathInfoProperty;
 import com.glisco.deathlog.death_info.properties.InventoryProperty;
-import com.glisco.deathlog.death_info.properties.TrinketComponentProperty;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -61,7 +60,7 @@ public class DeathInfo {
     public void writePartial(PacketByteBuf buffer) {
         final var list = new NbtList();
         properties.forEach((s, property) -> {
-            if (property instanceof InventoryProperty || property instanceof TrinketComponentProperty) return;
+            if (property instanceof InventoryProperty ) return;
             list.add(DeathInfoPropertySerializer.save(property, s));
         });
 
