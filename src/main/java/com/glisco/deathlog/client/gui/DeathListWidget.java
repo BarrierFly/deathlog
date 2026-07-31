@@ -13,6 +13,7 @@ public class DeathListWidget extends AlwaysSelectedEntryListWidget<DeathListEntr
 
     public DeathListWidget(MinecraftClient c, int w, int h, int top, int bot, int ih, DirectDeathLogStorage s) {
         super(c, w, h, top, bot);
+        this.setRenderBackground(false);
         this.storage = s;
         this.restoreEnabled = c.player != null && c.player.hasPermissionLevel(4);
         this.refilter();
