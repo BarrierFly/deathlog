@@ -14,10 +14,15 @@ public class DeathListWidget extends AlwaysSelectedEntryListWidget<DeathListEntr
     public boolean restoreEnabled;
 
     public DeathListWidget(MinecraftClient c, int w, int h, int top, int bot, int ih, DirectDeathLogStorage s) {
-        super(c, w, h, top, bot);
+        super(c, w, bot - top, top, ih);
         this.storage = s;
         this.restoreEnabled = c.player != null && c.player.getPermissions().hasPermission(DefaultPermissions.OWNERS);
         this.refilter();
+    }
+
+    @Override
+    public int getRowLeft() {
+        return 10 + 4;
     }
 
     @Override
