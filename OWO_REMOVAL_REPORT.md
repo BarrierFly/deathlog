@@ -6,17 +6,17 @@ Nine `owo-free-*` branches are committed and their worktrees are clean. The loca
 
 | Branch | MC | Base | Tip | Commits | owo-lib |
 |--------|----|------|-----|---------|---------|
-| owo-free-1.19 | 1.19.2 | origin/1.19 `f410afe` | `1a422d6` | 2 | Complete (0 active imports/deps) |
-| owo-free-1.19.3 | 1.19.3 | origin/1.19.3 `7629d10` | `a2482f3` | 4 | Complete (0 active imports/deps) |
-| owo-free-1.19.4 | 1.19.4 | origin/1.19.4 `ff85e2d` | `69708d1` | 3 | Complete (0 active imports/deps) |
-| owo-free-1.20 | 1.20 | origin/1.20 `8286f5c` | `c56ba2b` | 3 | Complete (0 active imports/deps) |
-| owo-free-1.20.2 | 1.20.2 | origin/1.20.2 `d2b3b8d` | `6bb9f31` | 3 | Complete (0 active imports/deps) |
-| owo-free-1.20.3 | 1.20.4 | origin/1.20.3 `833fab8` | `f0f499d` | 3 | Complete (0 active imports/deps) |
-| owo-free-1.21 | 1.21 | origin/1.21 `a0bc169` | `72be531` | 3 | Complete (0 active imports/deps) |
-| owo-free-1.21.2 | 1.21.3 | origin/1.21.2 `8b42efe` | `bc4377f` | 3 | Complete (0 active imports/deps) |
-| owo-free-1.21.11 | 1.21.11 | origin/1.21.11 `481844e` | `a548956` | 5 | Complete (0 active imports/deps) |
+| owo-free-1.19 | 1.19.2 | origin/1.19 `f410afe` | `1260eb9` | 3 | Complete (0 active imports/deps) |
+| owo-free-1.19.3 | 1.19.3 | origin/1.19.3 `7629d10` | `35cc8ee` | 5 | Complete (0 active imports/deps) |
+| owo-free-1.19.4 | 1.19.4 | origin/1.19.4 `ff85e2d` | `dcc1778` | 4 | Complete (0 active imports/deps) |
+| owo-free-1.20 | 1.20 | origin/1.20 `8286f5c` | `7fbba59` | 4 | Complete (0 active imports/deps) |
+| owo-free-1.20.2 | 1.20.2 | origin/1.20.2 `d2b3b8d` | `978f1e9` | 4 | Complete (0 active imports/deps) |
+| owo-free-1.20.3 | 1.20.4 | origin/1.20.3 `833fab8` | `dd93599` | 4 | Complete (0 active imports/deps) |
+| owo-free-1.21 | 1.21 | origin/1.21 `a0bc169` | `5e670d3` | 4 | Complete (0 active imports/deps) |
+| owo-free-1.21.2 | 1.21.3 | origin/1.21.2 `8b42efe` | `795355d` | 4 | Complete (0 active imports/deps) |
+| owo-free-1.21.11 | 1.21.11 | origin/1.21.11 `481844e` | `773ab8f` | 6 | Complete (0 active imports/deps) |
 
-The local `1.21.11` branch merges `owo-free-1.21.11` into `b276821` at `bbf883a`; it is 6 commits ahead of `origin/1.21.11`.
+The local `1.21.11` branch merges `owo-free-1.21.11` into the previous delivery history at `042e96e`; it is 9 commits ahead of `origin/1.21.11`.
 
 ## Modification History
 
@@ -28,6 +28,7 @@ The local `1.21.11` branch merges `owo-free-1.21.11` into `b276821` at `bbf883a`
 - `0379d09` completed the 1.21.11 infra migration: networking, storage, serialization, registry, and property types.
 - `a548956` and the equivalent branch-specific commits restored the vanilla UI text and list background.
 - `bbf883a` merged the 1.21.11 work into local `1.21.11`.
+- `773ab8f`, `c9ba9ed`, and `042e96e` applied and merged the follow-up UI and refmap fixes.
 
 ## Follow-up (2026-07-31): UI and refmap fixes
 
