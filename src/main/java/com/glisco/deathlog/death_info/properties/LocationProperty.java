@@ -2,20 +2,10 @@ package com.glisco.deathlog.death_info.properties;
 
 import com.glisco.deathlog.death_info.DeathInfoProperty;
 import com.glisco.deathlog.death_info.DeathInfoPropertyType;
-import io.wispforest.endec.Endec;
-import io.wispforest.endec.StructEndec;
-import io.wispforest.endec.impl.StructEndecBuilder;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 
 public class LocationProperty implements DeathInfoProperty {
-
-    public static final StructEndec<LocationProperty> ENDEC = StructEndecBuilder.of(
-            Endec.STRING.fieldOf("location", s -> s.location),
-            Endec.BOOLEAN.fieldOf("multiplayer", s -> s.multiplayer),
-            (location, multiplayer) -> new LocationProperty(location, multiplayer)
-    );
 
     private final String location;
     private final boolean multiplayer;
@@ -32,18 +22,18 @@ public class LocationProperty implements DeathInfoProperty {
 
     @Override
     public Text formatted() {
-        var worldText = Text.literal(this.location);
-        var modeText = (this.multiplayer
-                ? Text.translatable("deathlog.deathinfoproperty.location.multiplayer")
-                : Text.translatable("deathlog.deathinfoproperty.location.singleplayer"))
-                .formatted(Formatting.GRAY);
+        return Text.translatable(
+                "deathlog.deathinfoproperty.location.value", location,
+                multiplayer
+                        ? Text.translatable("deathlog.deathinfoproperty.location.multiplayer")
+                        : Text.translatable("deathlog.deathinfoproperty.location.singleplayer")
+        );
+    }
 
-        return Text.literal("")
-                .append(worldText)
-                .append(" ")
-                .append(Text.literal("(").formatted(Formatting.GRAY))
-                .append(modeText)
-                .append(Text.literal(")").formatted(Formatting.GRAY));
+    @Override
+    public void writeNbt(NbtCompound nbt) {
+        nbt.putString("Location", location);
+        nbt.putBoolean("Multiplayer", multiplayer);
     }
 
     @Override
@@ -56,7 +46,7 @@ public class LocationProperty implements DeathInfoProperty {
         public static final Type INSTANCE = new Type();
 
         private Type() {
-            super("deathlog.deathinfoproperty.location", Identifier.of("deathlog", "location"));
+            super("deathlog.deathinfoproperty.location", "location");
         }
 
         @Override
@@ -65,8 +55,10 @@ public class LocationProperty implements DeathInfoProperty {
         }
 
         @Override
-        public StructEndec<LocationProperty> endec() {
-            return LocationProperty.ENDEC;
+        public LocationProperty readFromNbt(NbtCompound nbt) {
+            String location = nbt.getString("Location", "");
+            boolean multiplayer = nbt.getBoolean("Multiplayer", false);
+            return new LocationProperty(location, multiplayer);
         }
     }
 }

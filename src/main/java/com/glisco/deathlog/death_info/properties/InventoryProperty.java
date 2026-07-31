@@ -2,27 +2,20 @@ package com.glisco.deathlog.death_info.properties;
 
 import com.glisco.deathlog.death_info.DeathInfoPropertyType;
 import com.glisco.deathlog.death_info.RestorableDeathInfoProperty;
-import io.wispforest.endec.Endec;
-import io.wispforest.endec.StructEndec;
-import io.wispforest.endec.impl.StructEndecBuilder;
-import io.wispforest.owo.serialization.endec.MinecraftEndecs;
-import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.registry.RegistryOps;
+import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.collection.DefaultedList;
 
-import java.util.List;
-
 public class InventoryProperty implements RestorableDeathInfoProperty {
-
-    private static final StructEndec<InventoryProperty> ENDEC = StructEndecBuilder.of(
-            defaulted(MinecraftEndecs.ITEM_STACK.listOf()).fieldOf("items", s -> s.playerItems),
-            defaulted(MinecraftEndecs.ITEM_STACK.listOf()).fieldOf("armor", s -> s.playerArmor),
-            (playerItems, playerArmor) -> new InventoryProperty(playerItems, playerArmor)
-    );
 
     private final DefaultedList<ItemStack> playerItems;
     private final DefaultedList<ItemStack> playerArmor;
@@ -36,13 +29,9 @@ public class InventoryProperty implements RestorableDeathInfoProperty {
         this.playerItems = DefaultedList.ofSize(37, ItemStack.EMPTY);
         this.playerArmor = DefaultedList.ofSize(4, ItemStack.EMPTY);
 
-        for (int i = 0; i < 36; i++) {
-            playerItems.set(i, playerInventory.getStack(i).copy());
-        }
-        playerArmor.set(0, playerInventory.player.getEquippedStack(EquipmentSlot.FEET).copy());
-        playerArmor.set(1, playerInventory.player.getEquippedStack(EquipmentSlot.LEGS).copy());
-        playerArmor.set(2, playerInventory.player.getEquippedStack(EquipmentSlot.CHEST).copy());
-        playerArmor.set(3, playerInventory.player.getEquippedStack(EquipmentSlot.HEAD).copy());
+        for (int i = 0; i < 36; i++) playerItems.set(i, playerInventory.getStack(i).copy());
+        for (int i = 0; i < 4; i++) playerArmor.set(i, playerInventory.getStack(36 + i).copy());
+        playerItems.set(36, playerInventory.getStack(PlayerInventory.OFF_HAND_SLOT).copy());
     }
 
     @Override
@@ -53,6 +42,22 @@ public class InventoryProperty implements RestorableDeathInfoProperty {
     @Override
     public Text formatted() {
         return null;
+    }
+
+    @Override
+    public void writeNbt(NbtCompound nbt) {
+        writeNbt(nbt, null);
+    }
+
+    @Override
+    public void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
+        final NbtList armorNbt = new NbtList();
+        playerArmor.forEach(stack -> armorNbt.add(encodeStack(stack, registries)));
+        nbt.put("Armor", armorNbt);
+
+        final NbtList inventoryNbt = new NbtList();
+        playerItems.forEach(stack -> inventoryNbt.add(encodeStack(stack, registries)));
+        nbt.put("Items", inventoryNbt);
     }
 
     @Override
@@ -67,17 +72,12 @@ public class InventoryProperty implements RestorableDeathInfoProperty {
 
     @Override
     public void restore(ServerPlayerEntity player) {
-        var inventory = player.getInventory();
+        final var inventory = player.getInventory();
         inventory.clear();
 
-        for (int i = 0; i < 36; i++) {
-            inventory.setStack(i, playerItems.get(i));
-        }
-        player.equipStack(EquipmentSlot.OFFHAND, playerItems.get(36));
-        player.equipStack(EquipmentSlot.FEET, playerArmor.get(0));
-        player.equipStack(EquipmentSlot.LEGS, playerArmor.get(1));
-        player.equipStack(EquipmentSlot.CHEST, playerArmor.get(2));
-        player.equipStack(EquipmentSlot.HEAD, playerArmor.get(3));
+        for (int i = 0; i < 4; i++) inventory.setStack(36 + i, playerArmor.get(i).copy());
+        for (int i = 0; i < 36; i++) inventory.setStack(i, playerItems.get(i).copy());
+        inventory.setStack(PlayerInventory.OFF_HAND_SLOT, playerItems.get(36).copy());
     }
 
     public DefaultedList<ItemStack> getPlayerArmor() {
@@ -88,14 +88,18 @@ public class InventoryProperty implements RestorableDeathInfoProperty {
         return playerItems;
     }
 
-    private static <T> Endec<DefaultedList<T>> defaulted(Endec<List<T>> endec) {
-        return endec.xmap(ts -> {
-                    var defaulted = DefaultedList.<T>of();
-                    defaulted.addAll(ts);
-                    return defaulted;
-                },
-                defaulted -> defaulted
-        );
+    private static NbtElement encodeStack(ItemStack stack, RegistryWrapper.WrapperLookup registries) {
+        if (stack.isEmpty()) return new NbtCompound();
+        return ItemStack.CODEC.encodeStart(getRegistryOps(registries), stack).result().orElseGet(NbtCompound::new);
+    }
+
+    private static ItemStack decodeStack(NbtElement element, RegistryWrapper.WrapperLookup registries) {
+        return ItemStack.CODEC.parse(getRegistryOps(registries), element).result().orElse(ItemStack.EMPTY);
+    }
+
+    private static RegistryOps<NbtElement> getRegistryOps(RegistryWrapper.WrapperLookup registries) {
+        if (registries != null) return registries.getOps(NbtOps.INSTANCE);
+        return DynamicRegistryManager.EMPTY.getOps(NbtOps.INSTANCE);
     }
 
     public static class Type extends DeathInfoPropertyType<InventoryProperty> {
@@ -103,7 +107,7 @@ public class InventoryProperty implements RestorableDeathInfoProperty {
         public static final Type INSTANCE = new Type();
 
         private Type() {
-            super("deathlog.deathinfoproperty.inventory", Identifier.of("deathlog", "inventory"));
+            super("deathlog.deathinfoproperty.inventory", "inventory");
         }
 
         @Override
@@ -112,8 +116,26 @@ public class InventoryProperty implements RestorableDeathInfoProperty {
         }
 
         @Override
-        public StructEndec<InventoryProperty> endec() {
-            return InventoryProperty.ENDEC;
+        public InventoryProperty readFromNbt(NbtCompound nbt) {
+            return readFromNbt(nbt, null);
+        }
+
+        @Override
+        public InventoryProperty readFromNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
+
+            final NbtList armorNbt = nbt.getListOrEmpty("Armor");
+            final var armorList = DefaultedList.ofSize(4, ItemStack.EMPTY);
+            for (int i = 0; i < armorNbt.size(); i++) {
+                armorList.set(i, decodeStack(armorNbt.getCompoundOrEmpty(i), registries));
+            }
+
+            final NbtList itemNbt = nbt.getListOrEmpty("Items");
+            final var itemList = DefaultedList.ofSize(37, ItemStack.EMPTY);
+            for (int i = 0; i < itemNbt.size(); i++) {
+                itemList.set(i, decodeStack(itemNbt.getCompoundOrEmpty(i), registries));
+            }
+
+            return new InventoryProperty(itemList, armorList);
         }
     }
 }
