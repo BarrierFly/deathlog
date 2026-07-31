@@ -3,6 +3,7 @@ package com.glisco.deathlog.client.gui;
 import com.glisco.deathlog.client.DeathInfo;
 import com.glisco.deathlog.storage.DirectDeathLogStorage;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.command.DefaultPermissions;
 import java.util.Objects;
@@ -17,6 +18,10 @@ public class DeathListWidget extends AlwaysSelectedEntryListWidget<DeathListEntr
         this.storage = s;
         this.restoreEnabled = c.player != null && c.player.getPermissions().hasPermission(DefaultPermissions.OWNERS);
         this.refilter();
+    }
+
+    @Override
+    protected void drawMenuListBackground(DrawContext context) {
     }
 
     public boolean filter(String p) {

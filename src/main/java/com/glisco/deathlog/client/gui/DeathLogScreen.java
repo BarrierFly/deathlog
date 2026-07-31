@@ -56,7 +56,6 @@ public class DeathLogScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        this.renderBackground(context, mouseX, mouseY, delta);
         final var originX = 230 + 30;
         final var originY = Math.min(this.height - 40, 300);
 
