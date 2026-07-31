@@ -31,7 +31,7 @@ public class ClientPlayNetworkHandlerMixin {
         if (!RenderSystem.isOnRenderThread()) return;
         DeathLogClient.getClientStorage().store(packet.getMessage(), client.player);
 
-        if (DeathLogClient.CONFIG.screenshotsEnabled()) {
+        if (DeathLogClient.CONFIG.screenshotsEnabled) {
             ScreenshotRecorder.saveScreenshot(FabricLoader.getInstance().getGameDir().toFile(), client.getFramebuffer(), text -> {
                 text = Text.literal("§7[§bDeathLog§7] ").append(((MutableText) text).formatted(Formatting.GRAY));
                 client.player.sendMessage(text, false);
@@ -41,12 +41,12 @@ public class ClientPlayNetworkHandlerMixin {
 
     @Inject(method = "onHealthUpdate", at = @At("HEAD"))
     private void onLegacyClientDeath(HealthUpdateS2CPacket packet, CallbackInfo ci) {
-        if (!DeathLogClient.CONFIG.useLegacyDeathDetection() || !RenderSystem.isOnRenderThread()) return;
+        if (!DeathLogClient.CONFIG.useLegacyDeathDetection || !RenderSystem.isOnRenderThread()) return;
         if (packet.getHealth() > 0 || client.player.isDead()) return;
 
         DeathLogClient.getClientStorage().store(Text.empty(), client.player);
 
-        if (DeathLogClient.CONFIG.screenshotsEnabled()) {
+        if (DeathLogClient.CONFIG.screenshotsEnabled) {
             ScreenshotRecorder.saveScreenshot(FabricLoader.getInstance().getGameDir().toFile(), client.getFramebuffer(), text -> {
                 text = Text.literal("§7[§bDeathLog§7] ").append(((MutableText) text).formatted(Formatting.GRAY));
                 client.player.sendMessage(text, false);
