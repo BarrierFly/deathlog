@@ -25,7 +25,7 @@ import java.nio.file.Files;
 @Environment(EnvType.CLIENT)
 public class DeathLogClient implements ClientModInitializer {
 
-    public static final com.glisco.deathlog.client.DeathLogConfig CONFIG;
+    public static final DeathLogConfigModel CONFIG;
 
     static {
         var configDir = FabricLoader.getInstance().getConfigDir();
@@ -37,7 +37,7 @@ public class DeathLogClient implements ClientModInitializer {
             }
         }
 
-        CONFIG = com.glisco.deathlog.client.DeathLogConfig.createAndLoad();
+        CONFIG = DeathLogConfigModel.createAndLoad();
     }
 
     public static final KeyBinding OPEN_DEATH_SCREEN = new KeyBinding("key.deathlog.death_screen", GLFW.GLFW_KEY_END, "key.categories.misc");
