@@ -53,8 +53,10 @@ public class DeathLogScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        this.renderBackground(context, mouseX, mouseY, delta);
+        super.render(context, mouseX, mouseY, delta);
+
         final var originX = 230 + 30;
-        final var originY = Math.min(this.height - 40, 300);
 
         if (deathList.getSelectedOrNull() != null) {
             DeathInfo info = deathList.getSelectedOrNull().getInfo();
@@ -70,6 +72,7 @@ public class DeathLogScreen extends Screen {
                 for (int i = 0; i < right.size(); i++)
                     context.drawText(textRenderer, right.get(i), originX + 100, 30 + 14 * i, 0xFFFFFF, false);
 
+                final var originY = Math.min(this.height - 40, 121 + 14 * Math.max(left.size(), right.size()));
                 context.drawTexture(INVENTORY_TEXTURE, originX - 8, originY - 83, 0, 0, 210, 107, 210, 107);
                 hoveredStack = null;
                 for (int i = 0; i < info.getPlayerItems().size() - 1; i++) {
@@ -92,7 +95,6 @@ public class DeathLogScreen extends Screen {
                 }
             }
         }
-        super.render(context, mouseX, mouseY, delta);
         context.drawText(textRenderer, Text.translatable("text.deathlog.death_list_title", storage.getDeathInfoList().size()), 16, this.height - 80, 0xFFFFFF, false);
     }
 
