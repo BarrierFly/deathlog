@@ -74,8 +74,9 @@ public class DeathLogScreen extends Screen {
         this.renderBackground(matrices);
         this.renderBackground(matrices, 0);
 
+        super.render(matrices, mouseX, mouseY, delta);
+
         final var originX = 230 + 30;
-        final var originY = Math.min(this.height - 40, 300);
 
         if (deathList.getSelectedOrNull() != null) {
             DeathInfo info = deathList.getSelectedOrNull().getInfo();
@@ -96,6 +97,7 @@ public class DeathLogScreen extends Screen {
                     textRenderer.draw(matrices, rightColumnText.get(i), originX + 100, 30 + 14 * i, 0xFFFFFF);
                 }
 
+                final var originY = Math.min(this.height - 40, 121 + 14 * Math.max(leftColumnText.size(), rightColumnText.size()));
                 RenderSystem.setShaderTexture(0, INVENTORY_TEXTURE);
                 drawTexture(matrices, originX - 8, originY - 83, 0, 0, 210, 107);
 
@@ -125,7 +127,6 @@ public class DeathLogScreen extends Screen {
             }
         }
 
-        super.render(matrices, mouseX, mouseY, delta);
         textRenderer.draw(matrices, Text.translatable("text.deathlog.death_list_title", storage.getDeathInfoList().size()),
                 16, this.height - 80, 0xFFFFFF);
     }
