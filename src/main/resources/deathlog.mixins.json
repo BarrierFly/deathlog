@@ -3,7 +3,7 @@
   "minVersion": "0.8",
   "package": "com.glisco.deathlog.mixin",
   "compatibilityLevel": "JAVA_8",
-  "refmap": "deathlog-refmap.json",
+  "refmap": "1.21.11-refmap.json",
   "client": [
     "ClientPlayNetworkHandlerMixin",
     "MinecraftServerAccessor",
