@@ -14,7 +14,7 @@ public class DeathListEntryContainer extends AlwaysSelectedEntryListWidget.Entry
 
     private final TextRenderer textRenderer;
     private final DeathListWidget parent;
-    private final DeathInfo info;
+    private DeathInfo info;
 
     public DeathListEntryContainer(DeathListWidget parent, DeathInfo info) {
         this.info = info;
@@ -38,6 +38,10 @@ public class DeathListEntryContainer extends AlwaysSelectedEntryListWidget.Entry
 
     public DeathInfo getInfo() {
         return info;
+    }
+
+    public void updateInfo(DeathInfo info) {
+        this.info = info;
     }
 
     @Override

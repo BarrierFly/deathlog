@@ -17,6 +17,7 @@ public class DeathListWidget extends AlwaysSelectedEntryListWidget<DeathListEntr
                            DirectDeathLogStorage storage) {
         super(client, width, height, top, bottom, itemHeight);
         this.setRenderBackground(false);
+        this.setRenderHorizontalShadows(false);
         this.storage = storage;
         this.restoreEnabled = client.player != null && client.player.hasPermissionLevel(4);
         this.refilter();

@@ -17,6 +17,8 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 
+import java.util.ArrayList;
+
 public class DeathLogScreen extends Screen {
 
     private static final Identifier INVENTORY_TEXTURE = new Identifier("deathlog", "textures/gui/inventory_overlay.png");
@@ -24,6 +26,8 @@ public class DeathLogScreen extends Screen {
     private final Screen parent;
     private final DirectDeathLogStorage storage;
     private DeathListWidget deathList;
+    private ButtonWidget restoreButton;
+    private ButtonWidget deleteButton;
     private ItemStack hoveredStack = null;
     private boolean canRestore = true;
 
@@ -39,13 +43,10 @@ public class DeathLogScreen extends Screen {
     }
 
     public void updateInfo(DeathInfo info, int index) {
+        var selected = this.deathList.getSelectedOrNull();
+        final int selectedIndex = selected != null ? this.storage.getDeathInfoList().indexOf(selected.getInfo()) : -1;
         this.storage.getDeathInfoList().set(index, info);
-        if (this.deathList.getSelectedOrNull() != null) {
-            var selected = this.deathList.getSelectedOrNull();
-            if (selected.getInfo() == info) {
-                // trigger reselect to refresh detail panel
-            }
-        }
+        if (selected != null && selectedIndex == index) selected.updateInfo(info);
     }
 
     @Override
@@ -57,6 +58,14 @@ public class DeathLogScreen extends Screen {
 
         this.addDrawableChild(new ButtonWidget(this.width / 2 - 50, this.height - 28, 100, 20,
                 Text.translatable("gui.done"), button -> this.close()));
+
+        final var originX = 230 + 30;
+        this.restoreButton = new ButtonWidget(originX, this.height - 28, 90, 20,
+                Text.translatable("text.deathlog.action.restore"), button -> restoreSelected());
+        this.deleteButton = new ButtonWidget(originX + 96, this.height - 28, 90, 20,
+                Text.translatable("text.deathlog.action.delete"), button -> deleteSelected());
+        this.addDrawableChild(restoreButton);
+        this.addDrawableChild(deleteButton);
 
         final TextFieldWidget searchField = new TextFieldWidget(textRenderer, 10, this.height - 63, 220, 20, Text.of(""));
         searchField.setChangedListener(s -> searchField.setEditableColor(deathList.filter(s) ? 0xFFFFFF : 0xFF2222));
@@ -74,6 +83,11 @@ public class DeathLogScreen extends Screen {
         this.renderBackground(matrices);
         this.renderBackground(matrices, 0);
 
+        fill(matrices, 10, 32, 230, this.height - 68, 0x77000000);
+
+        final var hasSelection = deathList.getSelectedOrNull() != null;
+        restoreButton.visible = hasSelection && canRestore;
+        deleteButton.visible = hasSelection;
         super.render(matrices, mouseX, mouseY, delta);
 
         final var originX = 230 + 30;
@@ -122,13 +136,29 @@ public class DeathLogScreen extends Screen {
                 }
 
                 if (hoveredStack != null) {
-                    renderTooltip(matrices, hoveredStack, mouseX, mouseY);
+                    var tooltip = new ArrayList<>(this.getTooltipFromItem(hoveredStack));
+                    tooltip.add(Text.translatable(this.client.player.isCreative() ? "text.deathlog.action.give_item.spawn" : "text.deathlog.action.give_item.copy_give").formatted(Formatting.GRAY));
+                    renderTooltip(matrices, tooltip, mouseX, mouseY);
                 }
             }
         }
 
         textRenderer.draw(matrices, Text.translatable("text.deathlog.death_list_title", storage.getDeathInfoList().size()),
                 16, this.height - 80, 0xFFFFFF);
+    }
+
+    private void restoreSelected() {
+        var selected = deathList.getSelectedOrNull();
+        if (selected == null) return;
+        final int index = storage.getDeathInfoList().indexOf(selected.getInfo());
+        if (index >= 0) storage.restore(index);
+    }
+
+    private void deleteSelected() {
+        var selected = deathList.getSelectedOrNull();
+        if (selected == null) return;
+        storage.delete(selected.getInfo());
+        deathList.refilter();
     }
 
     @Override
