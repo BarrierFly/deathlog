@@ -8,6 +8,7 @@ import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
+import net.minecraft.text.OrderedText;
 
 public class DeathListEntryContainer extends AlwaysSelectedEntryListWidget.Entry<DeathListEntryContainer> {
     private final TextRenderer textRenderer;
@@ -23,7 +24,11 @@ public class DeathListEntryContainer extends AlwaysSelectedEntryListWidget.Entry
     @Override
     public void render(DrawContext context, int idx, int y, int x, int ew, int eh, int mx, int my, boolean hov, float dt) {
         context.drawText(textRenderer, info.getListName(), x, y + 4, 0xFFFFFF, false);
-        context.drawText(textRenderer, info.getTitle(), x, y + 18, 0xFFFFFF, false);
+        var lines = textRenderer.wrapLines(info.getTitle(), ew - 8);
+        for (int i = 0; i < Math.min(2, lines.size()); i++) {
+            OrderedText line = lines.get(i);
+            context.drawText(textRenderer, line, x, y + 18 + i * 9, 0xFFFFFF, false);
+        }
     }
 
     @Override
