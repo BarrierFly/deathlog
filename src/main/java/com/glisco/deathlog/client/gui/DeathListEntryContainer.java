@@ -9,6 +9,7 @@ import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
+import net.minecraft.text.OrderedText;
 
 public class DeathListEntryContainer extends AlwaysSelectedEntryListWidget.Entry<DeathListEntryContainer> {
 
@@ -26,7 +27,12 @@ public class DeathListEntryContainer extends AlwaysSelectedEntryListWidget.Entry
     public void render(MatrixStack matrices, int index, int y, int x, int entryWidth, int entryHeight,
                        int mouseX, int mouseY, boolean hovered, float tickDelta) {
         textRenderer.draw(matrices, info.getListName(), x, y + 4, 0xFFFFFF);
-        textRenderer.draw(matrices, info.getTitle(), x, y + 14 + 4, 0xFFFFFF);
+        int titleY = y + 18;
+        var lines = textRenderer.wrapLines(info.getTitle(), entryWidth - 8);
+        for (int i = 0; i < Math.min(2, lines.size()); i++) {
+            OrderedText line = lines.get(i);
+            textRenderer.draw(matrices, line, x, titleY + i * 9, 0xFFFFFF);
+        }
     }
 
     @Override
