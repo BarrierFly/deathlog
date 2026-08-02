@@ -11,6 +11,7 @@ import net.minecraft.client.item.TooltipContext;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
+import net.minecraft.text.OrderedText;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.registry.Registries;
@@ -19,6 +20,10 @@ import java.util.ArrayList;
 
 public class DeathLogScreen extends Screen {
     private static final Identifier INVENTORY_TEXTURE = new Identifier("deathlog", "textures/gui/inventory_overlay.png");
+    private static final int LIST_BACKGROUND_COLOR = 0xFF101010;
+    private static final int SCROLL_TEXT_HEIGHT = 9;
+    private static final float SMALL_TEXT_SCALE = 0.5F;
+    private static final float SCROLL_CHARS_PER_SECOND = 3.0F;
     private final Screen parent;
     private final DirectDeathLogStorage storage;
     private DeathListWidget deathList;
@@ -52,10 +57,10 @@ public class DeathLogScreen extends Screen {
         if (!this.canRestore) this.deathList.restoreEnabled = false;
         this.addDrawableChild(deathList);
 
-        this.addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), button -> this.close())
-                .dimensions(this.width / 2 - 50, this.height - 28, 100, 20).build());
-
         final var originX = 230 + 30;
+        this.addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), button -> this.close())
+                .dimensions(originX - 120, this.height - 28, 100, 20).build());
+
         this.restoreButton = ButtonWidget.builder(Text.translatable("text.deathlog.action.restore"), button -> restoreSelected())
                 .dimensions(originX, this.height - 28, 90, 20).build();
         this.deleteButton = ButtonWidget.builder(Text.translatable("text.deathlog.action.delete"), button -> deleteSelected())
@@ -72,7 +77,7 @@ public class DeathLogScreen extends Screen {
     @Override
     public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
         this.renderBackground(matrices);
-        fill(matrices, 10, 32, 230, this.height - 68, 0x77000000);
+        fill(matrices, 10, 32, 230, this.height - 68, LIST_BACKGROUND_COLOR);
 
         final var hasSelection = deathList.getSelectedOrNull() != null;
         restoreButton.visible = hasSelection && canRestore;
@@ -87,13 +92,13 @@ public class DeathLogScreen extends Screen {
                 remote.fetchCompleteInfo(info);
                 textRenderer.draw(matrices, Text.translatable("text.deathlog.death_info_loading"), originX, 16, 0xFFFFFF);
             } else {
-                textRenderer.draw(matrices, info.getTitle(), originX, 16, 0xFFFFFF);
+                drawTitleText(matrices, info.getTitle(), originX, 16);
                 final var left = info.getLeftColumnText();
                 for (int i = 0; i < left.size(); i++)
                     textRenderer.draw(matrices, left.get(i), originX, 30 + 14 * i, 0xFFFFFF);
                 final var right = info.getRightColumnText();
                 for (int i = 0; i < right.size(); i++)
-                    textRenderer.draw(matrices, right.get(i), originX + 100, 30 + 14 * i, 0xFFFFFF);
+                    drawRightColumnText(matrices, right.get(i), originX + 100, 30 + 14 * i);
 
                 final var originY = Math.min(this.height - 40, 121 + 14 * Math.max(left.size(), right.size()));
                 RenderSystem.setShaderTexture(0, INVENTORY_TEXTURE);
@@ -160,6 +165,64 @@ public class DeathLogScreen extends Screen {
             return true;
         }
         return super.mouseClicked(mx, my, button);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (hoveredStack != null && client.options.dropKey.matchesKey(keyCode, scanCode)) {
+            dropHoveredItem();
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    private void dropHoveredItem() {
+        if (hoveredStack == null) return;
+        client.player.dropItem(hoveredStack.copy(), false);
+    }
+
+    private void drawTitleText(MatrixStack matrices, Text text, int x, int y) {
+        int maxWidth = Math.max(50, this.width - x - 10);
+        if (textRenderer.getWidth(text) <= maxWidth) {
+            textRenderer.draw(matrices, text, x, y, 0xFFFFFF);
+        } else {
+            drawScrollingText(matrices, text, x, y, maxWidth, 0xFFFFFF);
+        }
+    }
+
+    private void drawRightColumnText(MatrixStack matrices, Text text, int x, int y) {
+        int maxWidth = Math.max(50, this.width - x - 10);
+        if (textRenderer.getWidth(text) <= maxWidth) {
+            textRenderer.draw(matrices, text, x, y, 0xFFFFFF);
+            return;
+        }
+
+        var lines = textRenderer.wrapLines(text, maxWidth * 2);
+        if (lines.size() <= 2) {
+            for (int i = 0; i < lines.size(); i++) {
+                drawSmallText(matrices, lines.get(i), x, y + i * 4, 0xFFFFFF);
+            }
+        } else {
+            drawScrollingText(matrices, text, x, y, maxWidth, 0xFFFFFF);
+        }
+    }
+
+    private void drawScrollingText(MatrixStack matrices, Text text, int x, int y, int maxWidth, int color) {
+        int textWidth = textRenderer.getWidth(text);
+        int speed = (int) (textRenderer.getWidth(" ") * SCROLL_CHARS_PER_SECOND);
+        int period = Math.max(1, textWidth + maxWidth);
+        int offset = (int) ((System.currentTimeMillis() / 1000.0 * speed) % period);
+        RenderSystem.enableScissor(x, y, maxWidth, SCROLL_TEXT_HEIGHT);
+        textRenderer.draw(matrices, text, x - offset, y, color);
+        textRenderer.draw(matrices, text, x - offset + period, y, color);
+        RenderSystem.disableScissor();
+    }
+
+    private void drawSmallText(MatrixStack matrices, OrderedText text, int x, int y, int color) {
+        matrices.push();
+        matrices.scale(SMALL_TEXT_SCALE, SMALL_TEXT_SCALE, 1.0F);
+        textRenderer.draw(matrices, text, x / SMALL_TEXT_SCALE, y / SMALL_TEXT_SCALE, color);
+        matrices.pop();
     }
 
     @Override
