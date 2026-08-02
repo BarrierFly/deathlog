@@ -4,6 +4,7 @@ import com.glisco.deathlog.client.DeathInfo;
 import com.glisco.deathlog.storage.DirectDeathLogStorage;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.command.DefaultPermissions;
 import java.util.Objects;
@@ -12,6 +13,7 @@ public class DeathListWidget extends AlwaysSelectedEntryListWidget<DeathListEntr
     private final DirectDeathLogStorage storage;
     private String filter = "";
     public boolean restoreEnabled;
+    private boolean draggingScrollbar;
 
     public DeathListWidget(MinecraftClient c, int w, int h, int top, int bot, int ih, DirectDeathLogStorage s) {
         super(c, w, bot - top, top, ih);
@@ -27,6 +29,38 @@ public class DeathListWidget extends AlwaysSelectedEntryListWidget<DeathListEntr
 
     @Override
     protected void drawMenuListBackground(DrawContext context) {
+    }
+
+    private boolean isOverScrollbar(double mouseX, double mouseY) {
+        int x = getScrollbarX();
+        return mouseX >= x - 1 && mouseX <= x + 6 && mouseY >= getY() && mouseY <= getY() + getHeight();
+    }
+
+    @Override
+    public boolean mouseClicked(Click click, boolean doubleClick) {
+        if (click.button() == 0 && isOverScrollbar(click.x(), click.y())) {
+            draggingScrollbar = true;
+            return true;
+        }
+        return super.mouseClicked(click, doubleClick);
+    }
+
+    @Override
+    public boolean mouseDragged(Click click, double deltaX, double deltaY) {
+        if (draggingScrollbar) {
+            setScrollY(Math.max(0, Math.min(getMaxScrollY(), getScrollY() + deltaY)));
+            return true;
+        }
+        return super.mouseDragged(click, deltaX, deltaY);
+    }
+
+    @Override
+    public boolean mouseReleased(Click click) {
+        if (draggingScrollbar) {
+            draggingScrollbar = false;
+            return true;
+        }
+        return super.mouseReleased(click);
     }
 
     public boolean filter(String p) {
