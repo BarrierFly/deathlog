@@ -74,11 +74,15 @@ public class ClientDeathLogStorage extends BaseDeathLogStorage implements Direct
 
     @Override
     public String getDefaultFilter() {
-        var client = MinecraftClient.getInstance();
-        if (client.getCurrentServerEntry() != null) {
-            return client.getCurrentServerEntry().name;
-        } else if (client.isInSingleplayer()) {
-            return ((MinecraftServerAccessor) client.getServer()).deathlog_getSession().getDirectoryName();
+        try {
+            var client = MinecraftClient.getInstance();
+            if (client.getCurrentServerEntry() != null) {
+                return client.getCurrentServerEntry().name;
+            } else if (client.isInSingleplayer()) {
+                return ((MinecraftServerAccessor) client.getServer()).deathlog_getSession().getDirectoryName();
+            }
+        } catch (RuntimeException e) {
+            BaseDeathLogStorage.LOGGER.warn("Could not determine DeathLog default filter", e);
         }
 
         return "";

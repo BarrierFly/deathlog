@@ -22,7 +22,7 @@ public class DeathListWidget extends AlwaysSelectedEntryListWidget<DeathListEntr
 
     @Override
     public int getRowLeft() {
-        return 10 + 4;
+        return getX() + 4;
     }
 
     @Override

@@ -49,6 +49,8 @@ public class DeathLogScreen extends Screen {
     @Override
     protected void init() {
         this.deathList = new DeathListWidget(client, 220, this.height, 32, this.height - 68, 30, storage);
+        this.deathList.setX(10);
+        this.deathList.refilter();
         if (!this.canRestore) this.deathList.restoreEnabled = false;
         this.addDrawableChild(deathList);
 
@@ -64,8 +66,14 @@ public class DeathLogScreen extends Screen {
         this.addDrawableChild(deleteButton);
 
         final TextFieldWidget searchField = new TextFieldWidget(textRenderer, 10, this.height - 63, 220, 20, Text.of(""));
-        searchField.setChangedListener(s -> searchField.setEditableColor(deathList.filter(s) ? 0xFFFFFF : 0xFF2222));
-        searchField.setText(this.storage.getDefaultFilter());
+        searchField.setChangedListener(s -> searchField.setEditableColor(deathList.filter(s) ? 0xFFFFFFFF : 0xFFFF2222));
+        final String defaultFilter = this.storage.getDefaultFilter();
+        if (deathList.filter(defaultFilter)) {
+            searchField.setText(defaultFilter);
+        } else {
+            deathList.filter("");
+            searchField.setText("");
+        }
         this.addDrawableChild(searchField);
     }
 
@@ -84,18 +92,18 @@ public class DeathLogScreen extends Screen {
             DeathInfo info = deathList.getSelectedOrNull().getInfo();
             if (info.isPartial() && this.storage instanceof RemoteDeathLogStorage remote) {
                 remote.fetchCompleteInfo(info);
-                context.drawText(textRenderer, Text.translatable("text.deathlog.death_info_loading"), originX, 16, 0xFFFFFF, false);
+                context.drawText(textRenderer, Text.translatable("text.deathlog.death_info_loading"), originX, 16, 0xFFFFFFFF, false);
             } else {
-                context.drawText(textRenderer, info.getTitle(), originX, 16, 0xFFFFFF, false);
+                context.drawText(textRenderer, info.getTitle(), originX, 16, 0xFFFFFFFF, false);
                 final var left = info.getLeftColumnText();
                 for (int i = 0; i < left.size(); i++)
-                    context.drawText(textRenderer, left.get(i), originX, 30 + 14 * i, 0xFFFFFF, false);
+                    context.drawText(textRenderer, left.get(i), originX, 30 + 14 * i, 0xFFFFFFFF, false);
                 final var right = info.getRightColumnText();
                 for (int i = 0; i < right.size(); i++)
-                    context.drawText(textRenderer, right.get(i), originX + 100, 30 + 14 * i, 0xFFFFFF, false);
+                    context.drawText(textRenderer, right.get(i), originX + 100, 30 + 14 * i, 0xFFFFFFFF, false);
 
                 final var originY = Math.min(this.height - 40, 121 + 14 * Math.max(left.size(), right.size()));
-                context.drawTexture(RenderPipelines.GUI_TEXTURED, INVENTORY_TEXTURE, originX - 8, originY - 83, 0, 0, 210, 107, 210, 107);
+                context.drawTexture(RenderPipelines.GUI_TEXTURED, INVENTORY_TEXTURE, originX - 8, originY - 83, 0, 0, 210, 107, 256, 256);
                 hoveredStack = null;
                 for (int i = 0; i < info.getPlayerItems().size() - 1; i++) {
                     final ItemStack stack = info.getPlayerItems().get(i);
@@ -119,7 +127,7 @@ public class DeathLogScreen extends Screen {
                 }
             }
         }
-        context.drawText(textRenderer, Text.translatable("text.deathlog.death_list_title", storage.getDeathInfoList().size()), 16, this.height - 80, 0xFFFFFF, false);
+        context.drawText(textRenderer, Text.translatable("text.deathlog.death_list_title", storage.getDeathInfoList().size()), 16, this.height - 80, 0xFFFFFFFF, false);
     }
 
     private void restoreSelected() {

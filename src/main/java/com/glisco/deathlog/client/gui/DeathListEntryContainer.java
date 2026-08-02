@@ -23,8 +23,8 @@ public class DeathListEntryContainer extends AlwaysSelectedEntryListWidget.Entry
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, boolean hovered, float delta) {
-        context.drawText(textRenderer, info.getListName(), getX(), getY() + 4, 0xFFFFFF, false);
-        context.drawText(textRenderer, info.getTitle(), getX(), getY() + 18, 0xFFFFFF, false);
+        context.drawText(textRenderer, info.getListName(), getX(), getY() + 4, 0xFFFFFFFF, false);
+        context.drawText(textRenderer, info.getTitle(), getX(), getY() + 18, 0xFFFFFFFF, false);
     }
 
     @Override
