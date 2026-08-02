@@ -11,12 +11,17 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
+import net.minecraft.text.OrderedText;
 import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
 
 public class DeathLogScreen extends Screen {
     private static final Identifier INVENTORY_TEXTURE = Identifier.of("deathlog", "textures/gui/inventory_overlay.png");
+    private static final int LIST_BACKGROUND_COLOR = 0xFF101010;
+    private static final int SCROLL_TEXT_HEIGHT = 9;
+    private static final float SMALL_TEXT_SCALE = 0.5F;
+    private static final float SCROLL_CHARS_PER_SECOND = 3.0F;
     private final Screen parent;
     private final DirectDeathLogStorage storage;
     private DeathListWidget deathList;
@@ -49,10 +54,10 @@ public class DeathLogScreen extends Screen {
         if (!this.canRestore) this.deathList.restoreEnabled = false;
         this.addDrawableChild(deathList);
 
-        this.addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), button -> this.close())
-                .dimensions(this.width / 2 - 50, this.height - 28, 100, 20).build());
-
         final var originX = 230 + 30;
+        this.addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), button -> this.close())
+                .dimensions(originX - 120, this.height - 28, 100, 20).build());
+
         this.restoreButton = ButtonWidget.builder(Text.translatable("text.deathlog.action.restore"), button -> restoreSelected())
                 .dimensions(originX, this.height - 28, 90, 20).build();
         this.deleteButton = ButtonWidget.builder(Text.translatable("text.deathlog.action.delete"), button -> deleteSelected())
@@ -69,7 +74,7 @@ public class DeathLogScreen extends Screen {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         this.renderBackground(context, mouseX, mouseY, delta);
-        context.fill(10, 32, 230, this.height - 68, 0x77000000);
+        context.fill(10, 32, 230, this.height - 68, LIST_BACKGROUND_COLOR);
 
         final var hasSelection = deathList.getSelectedOrNull() != null;
         restoreButton.visible = hasSelection && canRestore;
@@ -84,13 +89,13 @@ public class DeathLogScreen extends Screen {
                 remote.fetchCompleteInfo(info);
                 context.drawText(textRenderer, Text.translatable("text.deathlog.death_info_loading"), originX, 16, 0xFFFFFF, false);
             } else {
-                context.drawText(textRenderer, info.getTitle(), originX, 16, 0xFFFFFF, false);
+                drawTitleText(context, info.getTitle(), originX, 16);
                 final var left = info.getLeftColumnText();
                 for (int i = 0; i < left.size(); i++)
                     context.drawText(textRenderer, left.get(i), originX, 30 + 14 * i, 0xFFFFFF, false);
                 final var right = info.getRightColumnText();
                 for (int i = 0; i < right.size(); i++)
-                    context.drawText(textRenderer, right.get(i), originX + 100, 30 + 14 * i, 0xFFFFFF, false);
+                    drawRightColumnText(context, right.get(i), originX + 100, 30 + 14 * i);
 
                 final var originY = Math.min(this.height - 40, 121 + 14 * Math.max(left.size(), right.size()));
                 context.drawTexture(INVENTORY_TEXTURE, originX - 8, originY - 83, 0, 0, 210, 107, 210, 107);
@@ -158,6 +163,64 @@ public class DeathLogScreen extends Screen {
             return true;
         }
         return super.mouseClicked(mx, my, button);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (hoveredStack != null && client.options.dropKey.matchesKey(keyCode, scanCode)) {
+            dropHoveredItem();
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    private void dropHoveredItem() {
+        if (hoveredStack == null) return;
+        client.player.dropItem(hoveredStack.copy(), false);
+    }
+
+    private void drawTitleText(DrawContext context, Text text, int x, int y) {
+        int maxWidth = Math.max(50, this.width - x - 10);
+        if (textRenderer.getWidth(text) <= maxWidth) {
+            context.drawText(textRenderer, text, x, y, 0xFFFFFFFF, false);
+        } else {
+            drawScrollingText(context, text, x, y, maxWidth, 0xFFFFFFFF);
+        }
+    }
+
+    private void drawRightColumnText(DrawContext context, Text text, int x, int y) {
+        int maxWidth = Math.max(50, this.width - x - 10);
+        if (textRenderer.getWidth(text) <= maxWidth) {
+            context.drawText(textRenderer, text, x, y, 0xFFFFFFFF, false);
+            return;
+        }
+
+        var lines = textRenderer.wrapLines(text, maxWidth * 2);
+        if (lines.size() <= 2) {
+            for (int i = 0; i < lines.size(); i++) {
+                drawSmallText(context, lines.get(i), x, y + i * 4, 0xFFFFFFFF);
+            }
+        } else {
+            drawScrollingText(context, text, x, y, maxWidth, 0xFFFFFFFF);
+        }
+    }
+
+    private void drawScrollingText(DrawContext context, Text text, int x, int y, int maxWidth, int color) {
+        int textWidth = textRenderer.getWidth(text);
+        int speed = (int) (textRenderer.getWidth(" ") * SCROLL_CHARS_PER_SECOND);
+        int period = Math.max(1, textWidth + maxWidth);
+        int offset = (int) ((System.currentTimeMillis() / 1000.0 * speed) % period);
+        context.enableScissor(x, y, maxWidth, SCROLL_TEXT_HEIGHT);
+        context.drawText(textRenderer, text, x - offset, y, color, false);
+        context.drawText(textRenderer, text, x - offset + period, y, color, false);
+        context.disableScissor();
+    }
+
+    private void drawSmallText(DrawContext context, OrderedText text, int x, int y, int color) {
+        context.getMatrices().push();
+        context.getMatrices().scale(SMALL_TEXT_SCALE, SMALL_TEXT_SCALE, 1.0F);
+        context.drawText(textRenderer, text, (int) (x / SMALL_TEXT_SCALE), (int) (y / SMALL_TEXT_SCALE), color, false);
+        context.getMatrices().pop();
     }
 
     @Override

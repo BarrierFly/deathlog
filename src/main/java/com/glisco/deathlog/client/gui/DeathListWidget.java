@@ -9,11 +9,16 @@ import java.util.Objects;
 
 public class DeathListWidget extends AlwaysSelectedEntryListWidget<DeathListEntryContainer> {
     private final DirectDeathLogStorage storage;
+    private final int scrollTop;
+    private final int scrollBottom;
     private String filter = "";
     public boolean restoreEnabled;
+    private boolean draggingScrollbar;
 
     public DeathListWidget(MinecraftClient c, int w, int h, int top, int bot, int ih, DirectDeathLogStorage s) {
         super(c, w, bot - top, top, ih);
+        this.scrollTop = top;
+        this.scrollBottom = bot;
         this.storage = s;
         this.restoreEnabled = c.player != null && c.player.hasPermissionLevel(4);
         this.refilter();
@@ -26,6 +31,38 @@ public class DeathListWidget extends AlwaysSelectedEntryListWidget<DeathListEntr
 
     @Override
     protected void drawMenuListBackground(DrawContext context) {
+    }
+
+    private boolean isOverScrollbar(double mouseX, double mouseY) {
+        int x = getScrollbarX();
+        return mouseX >= x - 1 && mouseX <= x + 6 && mouseY >= scrollTop && mouseY <= scrollBottom;
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && isOverScrollbar(mouseX, mouseY)) {
+            draggingScrollbar = true;
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+        if (draggingScrollbar) {
+            setScrollAmount(Math.max(0, Math.min(getMaxScroll(), getScrollAmount() + deltaY)));
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (draggingScrollbar) {
+            draggingScrollbar = false;
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     public boolean filter(String p) {
