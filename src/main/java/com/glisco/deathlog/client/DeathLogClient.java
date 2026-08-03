@@ -29,9 +29,9 @@ public class DeathLogClient implements ClientModInitializer {
 
     static {
         var configDir = FabricLoader.getInstance().getConfigDir();
-        if (Files.exists(configDir.resolve("deathlog.json")) && !Files.exists(configDir.resolve("deathlog.json5"))) {
-            if (configDir.resolve("deathlog.json").toFile().renameTo(configDir.resolve("deathlog.json5").toFile())) {
-                BaseDeathLogStorage.LOGGER.info("Migrated old '.json' config to '.json5'");
+        if (Files.exists(configDir.resolve("deathlog.json5")) && !Files.exists(configDir.resolve("deathlog.json"))) {
+            if (configDir.resolve("deathlog.json5").toFile().renameTo(configDir.resolve("deathlog.json").toFile())) {
+                BaseDeathLogStorage.LOGGER.info("Migrated old '.json5' config to '.json'");
             } else {
                 BaseDeathLogStorage.LOGGER.warn("Could not migrate old config file");
             }
