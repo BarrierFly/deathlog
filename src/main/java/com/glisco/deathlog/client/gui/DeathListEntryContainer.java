@@ -12,7 +12,7 @@ import net.minecraft.text.Text;
 
 public class DeathListEntryContainer extends AlwaysSelectedEntryListWidget.Entry<DeathListEntryContainer> {
     private static final int TEXT_LINE_HEIGHT = 9;
-    private static final float SCROLL_CHARS_PER_SECOND = 3.0F;
+    private static final float SCROLL_CHARS_PER_SECOND = 10.0F;
     private final TextRenderer textRenderer;
     private final DeathListWidget parent;
     private DeathInfo info;
