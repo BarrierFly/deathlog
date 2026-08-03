@@ -51,6 +51,8 @@ public class DeathLogScreen extends Screen {
     @Override
     protected void init() {
         this.deathList = new DeathListWidget(client, 220, this.height, 32, this.height - 68, 30, storage);
+        this.deathList.setX(10);
+        this.deathList.refilter();
         if (!this.canRestore) this.deathList.restoreEnabled = false;
         this.addDrawableChild(deathList);
 
@@ -67,7 +69,13 @@ public class DeathLogScreen extends Screen {
 
         final TextFieldWidget searchField = new TextFieldWidget(textRenderer, 10, this.height - 63, 220, 20, Text.of(""));
         searchField.setChangedListener(s -> searchField.setEditableColor(deathList.filter(s) ? 0xFFFFFF : 0xFF2222));
-        searchField.setText(this.storage.getDefaultFilter());
+        final String defaultFilter = this.storage.getDefaultFilter();
+        if (deathList.filter(defaultFilter)) {
+            searchField.setText(defaultFilter);
+        } else {
+            deathList.filter("");
+            searchField.setText("");
+        }
         this.addDrawableChild(searchField);
     }
 
@@ -98,7 +106,7 @@ public class DeathLogScreen extends Screen {
                     drawRightColumnText(context, right.get(i), originX + 100, 30 + 14 * i);
 
                 final var originY = Math.min(this.height - 40, 121 + 14 * Math.max(left.size(), right.size()));
-                context.drawTexture(INVENTORY_TEXTURE, originX - 8, originY - 83, 0, 0, 210, 107, 210, 107);
+                context.drawTexture(INVENTORY_TEXTURE, originX - 8, originY - 83, 0, 0, 210, 107, 256, 256);
                 hoveredStack = null;
                 for (int i = 0; i < info.getPlayerItems().size() - 1; i++) {
                     final ItemStack stack = info.getPlayerItems().get(i);

@@ -28,7 +28,6 @@ public class DeathLogCommon implements ModInitializer {
     }
 
     public static void setStorage(DeathLogStorage storage) {
-        if (storage == null) throw new IllegalArgumentException("Storage cannot be null!");
         DeathLogCommon.currentStorage = storage;
     }
 
