@@ -70,7 +70,13 @@ public class DeathLogScreen extends Screen {
 
         final TextFieldWidget searchField = new TextFieldWidget(textRenderer, 10, this.height - 63, 220, 20, Text.of(""));
         searchField.setChangedListener(s -> searchField.setEditableColor(deathList.filter(s) ? 0xFFFFFF : 0xFF2222));
-        searchField.setText(this.storage.getDefaultFilter());
+        final String defaultFilter = this.storage.getDefaultFilter();
+        if (deathList.filter(defaultFilter)) {
+            searchField.setText(defaultFilter);
+        } else {
+            deathList.filter("");
+            searchField.setText("");
+        }
         this.addDrawableChild(searchField);
     }
 
