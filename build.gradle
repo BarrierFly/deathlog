@@ -50,6 +50,13 @@ java {
     withSourcesJar()
 }
 
+loom {
+    mixin {
+        useLegacyMixinAp = true
+        defaultRefmapName = "1.21.11-refmap.json"
+    }
+}
+
 jar {
     from("LICENSE") {
         rename { "${it}_${project.archives_base_name}" }
