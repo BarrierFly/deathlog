@@ -11,7 +11,11 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.text.OrderedText;
 
+import java.util.List;
+
 public class DeathListEntryContainer extends AlwaysSelectedEntryListWidget.Entry<DeathListEntryContainer> {
+    private static final int BASE_ENTRY_HEIGHT = 30;
+    private static final int TEXT_LINE_HEIGHT = 9;
     private final TextRenderer textRenderer;
     private final DeathListWidget parent;
     private DeathInfo info;
@@ -26,11 +30,19 @@ public class DeathListEntryContainer extends AlwaysSelectedEntryListWidget.Entry
     public void render(DrawContext context, int mouseX, int mouseY, boolean hovered, float delta) {
         context.drawText(textRenderer, info.getListName(), getX(), getY() + 4, 0xFFFFFFFF, false);
         int y = getY() + 18;
-        var lines = textRenderer.wrapLines(info.getTitle(), parent.getWidth() - 8);
-        for (int i = 0; i < Math.min(2, lines.size()); i++) {
+        var lines = getTitleLines();
+        for (int i = 0; i < lines.size(); i++) {
             OrderedText line = lines.get(i);
             context.drawText(textRenderer, line, getX(), y + i * 9, 0xFFFFFFFF, false);
         }
+    }
+
+    public int getEntryHeight() {
+        return BASE_ENTRY_HEIGHT + (getTitleLines().size() - 1) * TEXT_LINE_HEIGHT;
+    }
+
+    private List<OrderedText> getTitleLines() {
+        return textRenderer.wrapLines(info.getTitle(), parent.getWidth() - 8);
     }
 
     @Override

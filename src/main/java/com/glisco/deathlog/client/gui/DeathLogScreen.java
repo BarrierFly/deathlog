@@ -23,9 +23,8 @@ import java.util.ArrayList;
 public class DeathLogScreen extends Screen {
     private static final Identifier INVENTORY_TEXTURE = Identifier.of("deathlog", "textures/gui/inventory_overlay.png");
     private static final int LIST_BACKGROUND_COLOR = 0xFF101010;
-    private static final int SCROLL_TEXT_HEIGHT = 9;
-    private static final float SMALL_TEXT_SCALE = 0.5F;
-    private static final float SCROLL_CHARS_PER_SECOND = 3.0F;
+    private static final int TEXT_LINE_HEIGHT = 9;
+    private static final float MIN_TEXT_SCALE = 0.6F;
     private final Screen parent;
     private final DirectDeathLogStorage storage;
     private DeathListWidget deathList;
@@ -100,15 +99,17 @@ public class DeathLogScreen extends Screen {
                 remote.fetchCompleteInfo(info);
                 context.drawText(textRenderer, Text.translatable("text.deathlog.death_info_loading"), originX, 16, 0xFFFFFFFF, false);
             } else {
-                drawTitleText(context, info.getTitle(), originX, 16);
+                final var titleLines = drawTitleText(context, info.getTitle(), originX, 16);
+                final var titleOffset = (titleLines - 1) * TEXT_LINE_HEIGHT;
+                final var detailTop = 30 + titleOffset;
                 final var left = info.getLeftColumnText();
                 for (int i = 0; i < left.size(); i++)
-                    context.drawText(textRenderer, left.get(i), originX, 30 + 14 * i, 0xFFFFFFFF, false);
+                    context.drawText(textRenderer, left.get(i), originX, detailTop + 14 * i, 0xFFFFFFFF, false);
                 final var right = info.getRightColumnText();
                 for (int i = 0; i < right.size(); i++)
-                    drawRightColumnText(context, right.get(i), originX + 100, 30 + 14 * i);
+                    drawRightColumnText(context, right.get(i), originX + 100, detailTop + 14 * i);
 
-                final var originY = Math.min(this.height - 40, 121 + 14 * Math.max(left.size(), right.size()));
+                final var originY = Math.min(this.height - 40, 121 + titleOffset + 14 * Math.max(left.size(), right.size()));
                 context.drawTexture(RenderPipelines.GUI_TEXTURED, INVENTORY_TEXTURE, originX - 8, originY - 83, 0, 0, 210, 107, 256, 256);
                 hoveredStack = null;
                 for (int i = 0; i < info.getPlayerItems().size() - 1; i++) {
@@ -161,18 +162,7 @@ public class DeathLogScreen extends Screen {
     @Override
     public boolean mouseClicked(Click click, boolean doubleClick) {
         if (hoveredStack != null && click.button() == 2) {
-            if (client.player.isCreative()) {
-                client.interactionManager.dropCreativeStack(hoveredStack);
-            } else {
-                var cmd = new StringBuilder("/give ").append(client.player.getName().getString()).append(" ");
-                cmd.append(Registries.ITEM.getId(hoveredStack.getItem()));
-                if (client.world != null) {
-                    var ops = client.world.getRegistryManager().getOps(NbtOps.INSTANCE);
-                    var encodedNbt = ItemStack.CODEC.encodeStart(ops, hoveredStack).result().orElseGet(NbtCompound::new);
-                    cmd.append(encodedNbt);
-                }
-                client.keyboard.setClipboard(cmd.toString());
-            }
+            performItemAction();
             return true;
         }
         return super.mouseClicked(click, doubleClick);
@@ -181,59 +171,68 @@ public class DeathLogScreen extends Screen {
     @Override
     public boolean keyPressed(KeyInput keyInput) {
         if (hoveredStack != null && client.options.dropKey.matchesKey(keyInput)) {
-            dropHoveredItem();
+            performItemAction();
             return true;
         }
         return super.keyPressed(keyInput);
     }
 
-    private void dropHoveredItem() {
+    private void performItemAction() {
         if (hoveredStack == null) return;
-        client.player.dropItem(hoveredStack.copy(), false);
+        if (client.player.isCreative()) {
+            client.interactionManager.dropCreativeStack(hoveredStack);
+        } else {
+            var cmd = new StringBuilder("/give ").append(client.player.getName().getString()).append(" ");
+            cmd.append(Registries.ITEM.getId(hoveredStack.getItem()));
+            if (client.world != null) {
+                var ops = client.world.getRegistryManager().getOps(NbtOps.INSTANCE);
+                var encodedNbt = ItemStack.CODEC.encodeStart(ops, hoveredStack).result().orElseGet(NbtCompound::new);
+                cmd.append(encodedNbt);
+            }
+            client.keyboard.setClipboard(cmd.toString());
+        }
     }
 
-    private void drawTitleText(DrawContext context, Text text, int x, int y) {
+    private int drawTitleText(DrawContext context, Text text, int x, int y) {
         int maxWidth = Math.max(50, this.width - x - 10);
-        if (textRenderer.getWidth(text) <= maxWidth) {
-            context.drawText(textRenderer, text, x, y, 0xFFFFFFFF, false);
-        } else {
-            drawScrollingText(context, text, x, y, maxWidth, 0xFFFFFFFF);
+        var lines = textRenderer.wrapLines(text, maxWidth);
+        for (int i = 0; i < lines.size(); i++) {
+            context.drawText(textRenderer, lines.get(i), x, y + i * TEXT_LINE_HEIGHT, 0xFFFFFFFF, false);
         }
+        return Math.max(1, lines.size());
     }
 
     private void drawRightColumnText(DrawContext context, Text text, int x, int y) {
         int maxWidth = Math.max(50, this.width - x - 10);
-        if (textRenderer.getWidth(text) <= maxWidth) {
+        int textWidth = textRenderer.getWidth(text);
+        if (textWidth <= maxWidth) {
             context.drawText(textRenderer, text, x, y, 0xFFFFFFFF, false);
             return;
         }
 
-        var lines = textRenderer.wrapLines(text, maxWidth * 2);
-        if (lines.size() <= 2) {
-            for (int i = 0; i < lines.size(); i++) {
-                drawSmallText(context, lines.get(i), x, y + i * 4, 0xFFFFFFFF);
-            }
-        } else {
-            drawScrollingText(context, text, x, y, maxWidth, 0xFFFFFFFF);
+        float fitScale = (float) maxWidth / textWidth;
+        if (fitScale >= MIN_TEXT_SCALE) {
+            drawScaledText(context, text.asOrderedText(), x, y, fitScale, 0xFFFFFFFF);
+            return;
+        }
+
+        int wrapWidth = Math.max(1, (int) Math.ceil(maxWidth / MIN_TEXT_SCALE));
+        var lines = textRenderer.wrapLines(text, wrapWidth);
+        int lineSpacing = Math.max(1, Math.min(scaledLineHeight(MIN_TEXT_SCALE), 13 / Math.max(1, lines.size() - 1)));
+        for (int i = 0; i < lines.size(); i++) {
+            drawScaledText(context, lines.get(i), x, y + i * lineSpacing, MIN_TEXT_SCALE, 0xFFFFFFFF);
         }
     }
 
-    private void drawScrollingText(DrawContext context, Text text, int x, int y, int maxWidth, int color) {
-        int textWidth = textRenderer.getWidth(text);
-        int speed = (int) (textRenderer.getWidth(" ") * SCROLL_CHARS_PER_SECOND);
-        int period = Math.max(1, textWidth + maxWidth);
-        int offset = (int) ((System.currentTimeMillis() / 1000.0 * speed) % period);
-        context.enableScissor(x, y, maxWidth, SCROLL_TEXT_HEIGHT);
-        context.drawText(textRenderer, text, x - offset, y, color, false);
-        context.drawText(textRenderer, text, x - offset + period, y, color, false);
-        context.disableScissor();
+    private void drawScaledText(DrawContext context, OrderedText text, int x, int y, float scale, int color) {
+        context.getMatrices().pushMatrix();
+        context.getMatrices().scale(scale, scale);
+        context.drawText(textRenderer, text, (int) (x / scale), (int) (y / scale), color, false);
+        context.getMatrices().popMatrix();
     }
 
-    private void drawSmallText(DrawContext context, OrderedText text, int x, int y, int color) {
-        context.getMatrices().pushMatrix();
-        context.getMatrices().scale(SMALL_TEXT_SCALE, SMALL_TEXT_SCALE);
-        context.drawText(textRenderer, text, (int) (x / SMALL_TEXT_SCALE), (int) (y / SMALL_TEXT_SCALE), color, false);
-        context.getMatrices().popMatrix();
+    private int scaledLineHeight(float scale) {
+        return Math.max(1, Math.round(TEXT_LINE_HEIGHT * scale));
     }
 
     @Override
