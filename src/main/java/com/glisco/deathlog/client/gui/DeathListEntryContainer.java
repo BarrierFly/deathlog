@@ -1,6 +1,7 @@
 package com.glisco.deathlog.client.gui;
 
 import com.glisco.deathlog.client.DeathInfo;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.screen.Screen;
@@ -9,9 +10,10 @@ import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
-import net.minecraft.text.OrderedText;
 
 public class DeathListEntryContainer extends AlwaysSelectedEntryListWidget.Entry<DeathListEntryContainer> {
+    private static final int TEXT_LINE_HEIGHT = 9;
+    private static final float SCROLL_CHARS_PER_SECOND = 3.0F;
 
     private final TextRenderer textRenderer;
     private final DeathListWidget parent;
@@ -27,11 +29,20 @@ public class DeathListEntryContainer extends AlwaysSelectedEntryListWidget.Entry
     public void render(MatrixStack matrices, int index, int y, int x, int entryWidth, int entryHeight,
                        int mouseX, int mouseY, boolean hovered, float tickDelta) {
         textRenderer.draw(matrices, info.getListName(), x, y + 4, 0xFFFFFF);
+        Text title = info.getTitle();
+        int maxWidth = Math.max(1, entryWidth - 8);
         int titleY = y + 18;
-        var lines = textRenderer.wrapLines(info.getTitle(), entryWidth - 8);
-        for (int i = 0; i < Math.min(2, lines.size()); i++) {
-            OrderedText line = lines.get(i);
-            textRenderer.draw(matrices, line, x, titleY + i * 9, 0xFFFFFF);
+        int textWidth = textRenderer.getWidth(title);
+        if (textWidth <= maxWidth) {
+            textRenderer.draw(matrices, title, x, titleY, 0xFFFFFF);
+        } else {
+            int speed = (int) (textRenderer.getWidth(" ") * SCROLL_CHARS_PER_SECOND);
+            int period = Math.max(1, textWidth + maxWidth);
+            int offset = (int) ((System.currentTimeMillis() / 1000.0 * speed) % period);
+            RenderSystem.enableScissor(x, titleY, maxWidth, TEXT_LINE_HEIGHT);
+            textRenderer.draw(matrices, title, x - offset, titleY, 0xFFFFFF);
+            textRenderer.draw(matrices, title, x - offset + period, titleY, 0xFFFFFF);
+            RenderSystem.disableScissor();
         }
     }
 

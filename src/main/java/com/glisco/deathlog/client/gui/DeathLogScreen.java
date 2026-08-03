@@ -24,9 +24,8 @@ public class DeathLogScreen extends Screen {
 
     private static final Identifier INVENTORY_TEXTURE = new Identifier("deathlog", "textures/gui/inventory_overlay.png");
     private static final int LIST_BACKGROUND_COLOR = 0xFF101010;
-    private static final int SCROLL_TEXT_HEIGHT = 9;
-    private static final float SMALL_TEXT_SCALE = 0.5F;
-    private static final float SCROLL_CHARS_PER_SECOND = 3.0F;
+    private static final int TEXT_LINE_HEIGHT = 9;
+    private static final float MIN_TEXT_SCALE = 0.6F;
 
     private final Screen parent;
     private final DirectDeathLogStorage storage;
@@ -110,19 +109,21 @@ public class DeathLogScreen extends Screen {
                 remote.fetchCompleteInfo(info);
                 textRenderer.draw(matrices, Text.translatable("text.deathlog.death_info_loading"), originX, 16, 0xFFFFFF);
             } else {
-                drawTitleText(matrices, info.getTitle(), originX, 16);
+                final var titleLines = drawTitleText(matrices, info.getTitle(), originX, 16);
+                final var titleOffset = (titleLines - 1) * TEXT_LINE_HEIGHT;
+                final var detailTop = 30 + titleOffset;
 
                 final var leftColumnText = info.getLeftColumnText();
                 for (int i = 0; i < leftColumnText.size(); i++) {
-                    textRenderer.draw(matrices, leftColumnText.get(i), originX, 30 + 14 * i, 0xFFFFFF);
+                    textRenderer.draw(matrices, leftColumnText.get(i), originX, detailTop + 14 * i, 0xFFFFFF);
                 }
 
                 final var rightColumnText = info.getRightColumnText();
                 for (int i = 0; i < rightColumnText.size(); i++) {
-                    drawRightColumnText(matrices, rightColumnText.get(i), originX + 100, 30 + 14 * i);
+                    drawRightColumnText(matrices, rightColumnText.get(i), originX + 100, detailTop + 14 * i);
                 }
 
-                final var originY = Math.min(this.height - 40, 121 + 14 * Math.max(leftColumnText.size(), rightColumnText.size()));
+                final var originY = Math.min(this.height - 40, 121 + titleOffset + 14 * Math.max(leftColumnText.size(), rightColumnText.size()));
                 RenderSystem.setShaderTexture(0, INVENTORY_TEXTURE);
                 drawTexture(matrices, originX - 8, originY - 83, 0, 0, 210, 107);
 
@@ -175,16 +176,7 @@ public class DeathLogScreen extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (hoveredStack != null && button == 2) {
-            if (client.player.isCreative()) {
-                client.interactionManager.dropCreativeStack(hoveredStack);
-            } else {
-                var command = new StringBuilder("/give ");
-                command.append(client.player.getName().getString());
-                command.append(" ");
-                command.append(Registry.ITEM.getId(hoveredStack.getItem()));
-                command.append(hoveredStack.getOrCreateNbt().toString());
-                client.keyboard.setClipboard(command.toString());
-            }
+            performItemAction();
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -193,59 +185,66 @@ public class DeathLogScreen extends Screen {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (hoveredStack != null && client.options.dropKey.matchesKey(keyCode, scanCode)) {
-            dropHoveredItem();
+            performItemAction();
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
-    private void dropHoveredItem() {
+    private void performItemAction() {
         if (hoveredStack == null) return;
-        client.player.dropItem(hoveredStack.copy(), false);
+        if (client.player.isCreative()) {
+            client.interactionManager.dropCreativeStack(hoveredStack);
+        } else {
+            var command = new StringBuilder("/give ");
+            command.append(client.player.getName().getString());
+            command.append(" ");
+            command.append(Registry.ITEM.getId(hoveredStack.getItem()));
+            command.append(hoveredStack.getOrCreateNbt().toString());
+            client.keyboard.setClipboard(command.toString());
+        }
     }
 
-    private void drawTitleText(MatrixStack matrices, Text text, int x, int y) {
+    private int drawTitleText(MatrixStack matrices, Text text, int x, int y) {
         int maxWidth = Math.max(50, this.width - x - 10);
-        if (textRenderer.getWidth(text) <= maxWidth) {
-            textRenderer.draw(matrices, text, x, y, 0xFFFFFF);
-        } else {
-            drawScrollingText(matrices, text, x, y, maxWidth, 0xFFFFFF);
+        var lines = textRenderer.wrapLines(text, maxWidth);
+        for (int i = 0; i < lines.size(); i++) {
+            textRenderer.draw(matrices, lines.get(i), x, y + i * TEXT_LINE_HEIGHT, 0xFFFFFF);
         }
+        return Math.max(1, lines.size());
     }
 
     private void drawRightColumnText(MatrixStack matrices, Text text, int x, int y) {
         int maxWidth = Math.max(50, this.width - x - 10);
-        if (textRenderer.getWidth(text) <= maxWidth) {
+        int textWidth = textRenderer.getWidth(text);
+        if (textWidth <= maxWidth) {
             textRenderer.draw(matrices, text, x, y, 0xFFFFFF);
             return;
         }
 
-        var lines = textRenderer.wrapLines(text, maxWidth * 2);
-        if (lines.size() <= 2) {
-            for (int i = 0; i < lines.size(); i++) {
-                drawSmallText(matrices, lines.get(i), x, y + i * 4, 0xFFFFFF);
-            }
-        } else {
-            drawScrollingText(matrices, text, x, y, maxWidth, 0xFFFFFF);
+        float fitScale = (float) maxWidth / textWidth;
+        if (fitScale >= MIN_TEXT_SCALE) {
+            drawScaledText(matrices, text.asOrderedText(), x, y, fitScale, 0xFFFFFF);
+            return;
+        }
+
+        int wrapWidth = Math.max(1, (int) Math.ceil(maxWidth / MIN_TEXT_SCALE));
+        var lines = textRenderer.wrapLines(text, wrapWidth);
+        int lineSpacing = Math.max(1, Math.min(scaledLineHeight(MIN_TEXT_SCALE), 13 / Math.max(1, lines.size() - 1)));
+        for (int i = 0; i < lines.size(); i++) {
+            drawScaledText(matrices, lines.get(i), x, y + i * lineSpacing, MIN_TEXT_SCALE, 0xFFFFFF);
         }
     }
 
-    private void drawScrollingText(MatrixStack matrices, Text text, int x, int y, int maxWidth, int color) {
-        int textWidth = textRenderer.getWidth(text);
-        int speed = (int) (textRenderer.getWidth(" ") * SCROLL_CHARS_PER_SECOND);
-        int period = Math.max(1, textWidth + maxWidth);
-        int offset = (int) ((System.currentTimeMillis() / 1000.0 * speed) % period);
-        RenderSystem.enableScissor(x, y, maxWidth, SCROLL_TEXT_HEIGHT);
-        textRenderer.draw(matrices, text, x - offset, y, color);
-        textRenderer.draw(matrices, text, x - offset + period, y, color);
-        RenderSystem.disableScissor();
+    private void drawScaledText(MatrixStack matrices, OrderedText text, int x, int y, float scale, int color) {
+        matrices.push();
+        matrices.scale(scale, scale, 1.0F);
+        textRenderer.draw(matrices, text, x / scale, y / scale, color);
+        matrices.pop();
     }
 
-    private void drawSmallText(MatrixStack matrices, OrderedText text, int x, int y, int color) {
-        matrices.push();
-        matrices.scale(SMALL_TEXT_SCALE, SMALL_TEXT_SCALE, 1.0F);
-        textRenderer.draw(matrices, text, x / SMALL_TEXT_SCALE, y / SMALL_TEXT_SCALE, color);
-        matrices.pop();
+    private int scaledLineHeight(float scale) {
+        return Math.max(1, Math.round(TEXT_LINE_HEIGHT * scale));
     }
 
     private void renderSlotWithPossibleTooltip(MatrixStack matrices, ItemStack stack, int x, int y, int mouseX, int mouseY) {
