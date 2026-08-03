@@ -71,7 +71,7 @@ public class DeathLogScreen extends Screen {
         this.addDrawableChild(deleteButton);
 
         final TextFieldWidget searchField = new TextFieldWidget(textRenderer, 10, this.height - 63, 220, 20, Text.of(""));
-        searchField.setChangedListener(s -> searchField.setEditableColor(deathList.filter(s) ? 0xFFFFFF : 0xFF2222));
+        searchField.setChangedListener(s -> searchField.setEditableColor(deathList.filter(s) ? 0xFFFFFFFF : 0xFFFF2222));
         final String defaultFilter = this.storage.getDefaultFilter();
         if (deathList.filter(defaultFilter)) {
             searchField.setText(defaultFilter);
@@ -97,14 +97,14 @@ public class DeathLogScreen extends Screen {
             DeathInfo info = deathList.getSelectedOrNull().getInfo();
             if (info.isPartial() && this.storage instanceof RemoteDeathLogStorage remote) {
                 remote.fetchCompleteInfo(info);
-                context.drawText(textRenderer, Text.translatable("text.deathlog.death_info_loading"), originX, 16, 0xFFFFFF, false);
+                context.drawText(textRenderer, Text.translatable("text.deathlog.death_info_loading"), originX, 16, 0xFFFFFFFF, false);
             } else {
                 final var titleLines = drawTitleText(context, info.getTitle(), originX, 16);
                 final var titleOffset = (titleLines - 1) * TEXT_LINE_HEIGHT;
                 final var detailTop = 30 + titleOffset;
                 final var left = info.getLeftColumnText();
                 for (int i = 0; i < left.size(); i++)
-                    context.drawText(textRenderer, left.get(i), originX, detailTop + 14 * i, 0xFFFFFF, false);
+                    context.drawText(textRenderer, left.get(i), originX, detailTop + 14 * i, 0xFFFFFFFF, false);
                 final var right = info.getRightColumnText();
                 for (int i = 0; i < right.size(); i++)
                     drawRightColumnText(context, right.get(i), originX + 100, detailTop + 14 * i);
@@ -134,7 +134,7 @@ public class DeathLogScreen extends Screen {
                 }
             }
         }
-        context.drawText(textRenderer, Text.translatable("text.deathlog.death_list_title", storage.getDeathInfoList().size()), 16, this.height - 80, 0xFFFFFF, false);
+        context.drawText(textRenderer, Text.translatable("text.deathlog.death_list_title", storage.getDeathInfoList().size()), 16, this.height - 80, 0xFFFFFFFF, false);
     }
 
     private void restoreSelected() {
