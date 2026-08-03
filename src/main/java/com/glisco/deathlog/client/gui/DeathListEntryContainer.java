@@ -1,9 +1,9 @@
 package com.glisco.deathlog.client.gui;
 
 import com.glisco.deathlog.client.DeathInfo;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.client.util.math.MatrixStack;
@@ -36,10 +36,10 @@ public class DeathListEntryContainer extends AlwaysSelectedEntryListWidget.Entry
             int speed = (int) (textRenderer.getWidth(" ") * SCROLL_CHARS_PER_SECOND);
             int period = Math.max(1, textWidth + maxWidth);
             int offset = (int) ((System.currentTimeMillis() / 1000.0 * speed) % period);
-            RenderSystem.enableScissor(x, titleY, maxWidth, TEXT_LINE_HEIGHT);
+            DrawableHelper.enableScissor(x, titleY, maxWidth, TEXT_LINE_HEIGHT);
             textRenderer.draw(m, title, x - offset, titleY, 0xFFFFFF);
             textRenderer.draw(m, title, x - offset + period, titleY, 0xFFFFFF);
-            RenderSystem.disableScissor();
+            DrawableHelper.disableScissor();
         }
     }
 
