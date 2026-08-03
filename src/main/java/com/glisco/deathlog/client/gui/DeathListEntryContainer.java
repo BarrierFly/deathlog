@@ -9,13 +9,10 @@ import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
-import net.minecraft.text.OrderedText;
-
-import java.util.List;
 
 public class DeathListEntryContainer extends AlwaysSelectedEntryListWidget.Entry<DeathListEntryContainer> {
-    private static final int BASE_ENTRY_HEIGHT = 30;
     private static final int TEXT_LINE_HEIGHT = 9;
+    private static final float SCROLL_CHARS_PER_SECOND = 3.0F;
     private final TextRenderer textRenderer;
     private final DeathListWidget parent;
     private DeathInfo info;
@@ -29,20 +26,21 @@ public class DeathListEntryContainer extends AlwaysSelectedEntryListWidget.Entry
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, boolean hovered, float delta) {
         context.drawText(textRenderer, info.getListName(), getX(), getY() + 4, 0xFFFFFFFF, false);
-        int y = getY() + 18;
-        var lines = getTitleLines();
-        for (int i = 0; i < lines.size(); i++) {
-            OrderedText line = lines.get(i);
-            context.drawText(textRenderer, line, getX(), y + i * TEXT_LINE_HEIGHT, 0xFFFFFFFF, false);
+        Text title = info.getTitle();
+        int maxWidth = Math.max(1, getWidth() - 8);
+        int titleY = getY() + 18;
+        int textWidth = textRenderer.getWidth(title);
+        if (textWidth <= maxWidth) {
+            context.drawText(textRenderer, title, getX(), titleY, 0xFFFFFFFF, false);
+        } else {
+            int speed = (int) (textRenderer.getWidth(" ") * SCROLL_CHARS_PER_SECOND);
+            int period = Math.max(1, textWidth + maxWidth);
+            int offset = (int) ((System.currentTimeMillis() / 1000.0 * speed) % period);
+            context.enableScissor(getX(), titleY, getX() + maxWidth, titleY + TEXT_LINE_HEIGHT);
+            context.drawText(textRenderer, title, getX() - offset, titleY, 0xFFFFFFFF, false);
+            context.drawText(textRenderer, title, getX() - offset + period, titleY, 0xFFFFFFFF, false);
+            context.disableScissor();
         }
-    }
-
-    public int getEntryHeight() {
-        return BASE_ENTRY_HEIGHT + (getTitleLines().size() - 1) * TEXT_LINE_HEIGHT;
-    }
-
-    private List<OrderedText> getTitleLines() {
-        return textRenderer.wrapLines(info.getTitle(), parent.getWidth() - 8);
     }
 
     @Override
