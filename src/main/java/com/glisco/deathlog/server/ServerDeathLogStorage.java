@@ -37,7 +37,7 @@ public class ServerDeathLogStorage extends BaseDeathLogStorage {
                 if (isErrored()) return;
 
                 if (!Files.exists(path)) return;
-                if (path.endsWith(".dat")) return;
+                if (!path.getFileName().toString().endsWith(".dat")) return;
 
                 UUID uuid;
 
