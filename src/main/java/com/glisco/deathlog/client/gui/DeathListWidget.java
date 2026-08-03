@@ -71,8 +71,13 @@ public class DeathListWidget extends AlwaysSelectedEntryListWidget<DeathListEntr
 
     public boolean refilter() {
         this.clearEntries();
-        if (filter.isBlank()) storage.getDeathInfoList().forEach(i -> addEntry(new DeathListEntryContainer(this, i)));
-        else storage.getDeathInfoList().forEach(i -> { if (i.createSearchString().contains(filter)) addEntry(new DeathListEntryContainer(this, i)); });
+        if (filter.isBlank()) storage.getDeathInfoList().forEach(this::addDeathEntry);
+        else storage.getDeathInfoList().forEach(i -> { if (i.createSearchString().contains(filter)) addDeathEntry(i); });
         return getEntryCount() != 0;
+    }
+
+    private void addDeathEntry(DeathInfo info) {
+        var entry = new DeathListEntryContainer(this, info);
+        addEntry(entry, entry.getEntryHeight());
     }
 }
