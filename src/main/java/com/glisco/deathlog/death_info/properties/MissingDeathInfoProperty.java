@@ -32,7 +32,7 @@ public class MissingDeathInfoProperty implements DeathInfoProperty {
 
     @Override
     public String toSearchableString() {
-        return null;
+        return "";
     }
 
     public static class Type extends DeathInfoPropertyType<MissingDeathInfoProperty> {
