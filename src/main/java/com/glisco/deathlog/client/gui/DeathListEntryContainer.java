@@ -36,7 +36,7 @@ public class DeathListEntryContainer extends AlwaysSelectedEntryListWidget.Entry
             int speed = (int) (textRenderer.getWidth(" ") * SCROLL_CHARS_PER_SECOND);
             int period = Math.max(1, textWidth + maxWidth);
             int offset = (int) ((System.currentTimeMillis() / 1000.0 * speed) % period);
-            DrawableHelper.enableScissor(x, titleY, maxWidth, TEXT_LINE_HEIGHT);
+            DrawableHelper.enableScissor(x, titleY, x + maxWidth, titleY + TEXT_LINE_HEIGHT);
             textRenderer.draw(m, title, x - offset, titleY, 0xFFFFFF);
             textRenderer.draw(m, title, x - offset + period, titleY, 0xFFFFFF);
             DrawableHelper.disableScissor();
