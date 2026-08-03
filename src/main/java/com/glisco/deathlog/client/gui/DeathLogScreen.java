@@ -84,7 +84,6 @@ public class DeathLogScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        this.renderBackground(context, mouseX, mouseY, delta);
         context.fill(10, 32, 230, this.height - 68, LIST_BACKGROUND_COLOR);
 
         final var hasSelection = deathList.getSelectedOrNull() != null;
