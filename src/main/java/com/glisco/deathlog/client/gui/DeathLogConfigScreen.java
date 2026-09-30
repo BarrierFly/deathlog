@@ -52,7 +52,8 @@ public class DeathLogConfigScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        this.renderBackground(context, mouseX, mouseY, delta);
+        // Screen.renderWithTooltip already renders the background (and blur) once per frame;
+        // calling renderBackground here again trips the "Can only blur once per frame" check.
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 20, 0xFFFFFFFF);
         super.render(context, mouseX, mouseY, delta);
     }
