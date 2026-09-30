@@ -2,6 +2,7 @@ package com.glisco.deathlog.client;
 
 import com.glisco.deathlog.DeathLogCommon;
 import com.glisco.deathlog.client.gui.DeathLogScreen;
+import com.glisco.deathlog.client.gui.DeathLogToast;
 import com.glisco.deathlog.network.DeathLogPackets;
 import com.glisco.deathlog.storage.BaseDeathLogStorage;
 import com.glisco.deathlog.storage.DirectDeathLogStorage;
@@ -18,6 +19,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.StatsScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.toast.SystemToast;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
@@ -49,6 +51,7 @@ public class DeathLogClient implements ClientModInitializer {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             storage = new ClientDeathLogStorage(client);
             DeathLogCommon.setStorage(storage);
+            showStorageErrorToasts(client);
         });
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
@@ -85,5 +88,13 @@ public class DeathLogClient implements ClientModInitializer {
 
     public static DirectDeathLogStorage getClientStorage() {
         return storage;
+    }
+
+    private static void showStorageErrorToasts(MinecraftClient client) {
+        if (storage == null || !storage.isErrored()) return;
+
+        final var title = Text.translatable("text.deathlog.error.title");
+        client.getToastManager().add(new DeathLogToast(SystemToast.Type.WORLD_ACCESS_FAILURE, title, Text.literal(storage.getErrorCondition())));
+        client.getToastManager().add(new DeathLogToast(SystemToast.Type.WORLD_ACCESS_FAILURE, title, Text.translatable("text.deathlog.error.check_log")));
     }
 }

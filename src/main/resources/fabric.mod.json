@@ -25,6 +25,9 @@
     ],
     "server": [
       "com.glisco.deathlog.server.DeathLogServer"
+    ],
+    "modmenu": [
+      "com.glisco.deathlog.client.DeathLogModMenu"
     ]
   },
   "mixins": [
@@ -34,9 +37,6 @@
     "fabricloader": "*",
     "fabric": "*",
     "minecraft": "1.21.11"
-  },
-  "suggests": {
-    "trinkets": ">=3.4.0"
   },
   "custom": {
     "modmenu": {

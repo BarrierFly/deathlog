@@ -24,10 +24,6 @@ dependencies {
 
     // Mod Menu
     modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
-
-
-    // permissions api (compile only)
-    modCompileOnly 'me.lucko:fabric-permissions-api:0.6.1'
 }
 
 processResources {

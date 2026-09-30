@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.CompletionException;
 
 public class ServerDeathLogStorage extends BaseDeathLogStorage {
 
@@ -34,8 +35,8 @@ public class ServerDeathLogStorage extends BaseDeathLogStorage {
             return;
         }
 
-        try {
-            Files.list(deathLogDir).forEach(path -> {
+        try (var paths = Files.list(deathLogDir)) {
+            paths.forEach(path -> {
                 if (isErrored()) return;
 
                 if (!Files.exists(path)) return;
@@ -53,7 +54,19 @@ public class ServerDeathLogStorage extends BaseDeathLogStorage {
                     return;
                 }
 
-                deathInfos.put(uuid, load(path.toFile()).join());
+                try {
+                    final var loaded = load(path.toFile()).join();
+                    if (loaded == null) {
+                        LOGGER.error("Skipping unreadable DeathLog database for player {}", uuid);
+                        return;
+                    }
+                    deathInfos.put(uuid, loaded);
+                } catch (CompletionException e) {
+                    raiseError("Disk access failed");
+
+                    e.printStackTrace();
+                    LOGGER.error("Failed to load DeathLog database '{}', further disk operations have been disabled", path.getFileName());
+                }
             });
         } catch (IOException | IllegalArgumentException e) {
             raiseError("Unknown problem");

@@ -60,8 +60,6 @@ public class DeathLogServer implements DedicatedServerModInitializer {
                         return executeRestore(context, index);
                     })).then(literal("latest").executes(DeathLogServer::executeRestoreLatest)))));
         });
-
-        DeathLogPackets.Server.registerDedicatedListeners();
     }
 
     private int executeList(CommandContext<ServerCommandSource> context, @Nullable String filter) throws CommandSyntaxException {

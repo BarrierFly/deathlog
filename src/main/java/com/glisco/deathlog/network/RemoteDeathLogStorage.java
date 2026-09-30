@@ -9,13 +9,16 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public class RemoteDeathLogStorage extends BaseDeathLogStorage implements DirectDeathLogStorage {
 
     private final List<DeathInfo> deathInfoList;
     private final UUID profileId;
+    private final Set<DeathInfo> pendingFetches = new HashSet<>();
 
     public RemoteDeathLogStorage(List<DeathInfo> deathInfoList, UUID profileId) {
         super(MinecraftClient.getInstance().world.getRegistryManager());
@@ -53,8 +56,13 @@ public class RemoteDeathLogStorage extends BaseDeathLogStorage implements Direct
 
     public void fetchCompleteInfo(DeathInfo info) {
         if (!info.isPartial()) return;
+        if (!pendingFetches.add(info)) return;
 
-        var idx = this.getDeathInfoList().indexOf(info);
+        final int idx = this.getDeathInfoList().indexOf(info);
+        if (idx < 0) {
+            pendingFetches.remove(info);
+            return;
+        }
         DeathLogPackets.Client.fetchInfo(profileId, idx);
     }
 

@@ -87,7 +87,7 @@ public class DeathLogScreen extends Screen {
         context.fill(10, 32, 230, this.height - 68, LIST_BACKGROUND_COLOR);
 
         final var hasSelection = deathList.getSelectedOrNull() != null;
-        restoreButton.visible = hasSelection && canRestore;
+        restoreButton.visible = hasSelection && canRestore && deathList.restoreEnabled;
         deleteButton.visible = hasSelection;
         super.render(context, mouseX, mouseY, delta);
 
@@ -109,32 +109,44 @@ public class DeathLogScreen extends Screen {
                 for (int i = 0; i < right.size(); i++)
                     drawRightColumnText(context, right.get(i), originX + 100, detailTop + 14 * i);
 
-                final var originY = Math.min(this.height - 40, 121 + titleOffset + 14 * Math.max(left.size(), right.size()));
-                context.drawTexture(RenderPipelines.GUI_TEXTURED, INVENTORY_TEXTURE, originX - 8, originY - 83, 0, 0, 210, 107, 256, 256);
                 hoveredStack = null;
-                for (int i = 0; i < info.getPlayerItems().size() - 1; i++) {
-                    final ItemStack stack = info.getPlayerItems().get(i);
-                    if (stack.isEmpty()) continue;
-                    final var sx = originX + 18 * (i % 9);
-                    final var sy = originY + (i < 9 ? 0 : -58 + 18 * (i / 9 - 1));
-                    renderSlot(context, stack, sx, sy, mouseX, mouseY);
-                }
-                if (!info.getPlayerItems().get(36).isEmpty())
-                    renderSlot(context, info.getPlayerItems().get(36), originX + 178, originY - 75, mouseX, mouseY);
-                for (int i = 0; i < info.getPlayerArmor().size(); i++) {
-                    final ItemStack stack = info.getPlayerArmor().get(i);
-                    if (stack.isEmpty()) continue;
-                    renderSlot(context, stack, originX + 178, originY - 18 * i, mouseX, mouseY);
-                }
-                if (hoveredStack != null) {
-                    var tooltip = Screen.getTooltipFromItem(this.client, hoveredStack);
-                    var actionTooltip = new ArrayList<>(tooltip);
-                    actionTooltip.add(Text.translatable(this.client.player.isCreative() ? "text.deathlog.action.give_item.spawn" : "text.deathlog.action.give_item.copy_give").formatted(net.minecraft.util.Formatting.GRAY));
-                    context.drawTooltip(textRenderer, actionTooltip, mouseX, mouseY);
+                if (info.getPlayerItems().size() >= 37 && !info.getPlayerArmor().isEmpty()) {
+                    final var originY = Math.min(this.height - 40, 121 + titleOffset + 14 * Math.max(left.size(), right.size()));
+                    context.drawTexture(RenderPipelines.GUI_TEXTURED, INVENTORY_TEXTURE, originX - 8, originY - 83, 0, 0, 210, 107, 256, 256);
+                    for (int i = 0; i < info.getPlayerItems().size() - 1; i++) {
+                        final ItemStack stack = info.getPlayerItems().get(i);
+                        if (stack.isEmpty()) continue;
+                        final var sx = originX + 18 * (i % 9);
+                        final var sy = originY + (i < 9 ? 0 : -58 + 18 * (i / 9 - 1));
+                        renderSlot(context, stack, sx, sy, mouseX, mouseY);
+                    }
+                    if (!info.getPlayerItems().get(36).isEmpty())
+                        renderSlot(context, info.getPlayerItems().get(36), originX + 178, originY - 75, mouseX, mouseY);
+                    for (int i = 0; i < info.getPlayerArmor().size(); i++) {
+                        final ItemStack stack = info.getPlayerArmor().get(i);
+                        if (stack.isEmpty()) continue;
+                        renderSlot(context, stack, originX + 178, originY - 18 * i, mouseX, mouseY);
+                    }
+                    if (hoveredStack != null) {
+                        var tooltip = Screen.getTooltipFromItem(this.client, hoveredStack);
+                        var actionTooltip = new ArrayList<>(tooltip);
+                        actionTooltip.add(Text.translatable(this.client.player.isCreative() ? "text.deathlog.action.give_item.spawn" : "text.deathlog.action.give_item.copy_give").formatted(net.minecraft.util.Formatting.GRAY));
+                        context.drawTooltip(textRenderer, actionTooltip, mouseX, mouseY);
+                    }
                 }
             }
+        } else {
+            drawNoSelectionHint(context, originX, 16);
         }
         context.drawText(textRenderer, Text.translatable("text.deathlog.death_list_title", storage.getDeathInfoList().size()), 16, this.height - 80, 0xFFFFFFFF, false);
+    }
+
+    private void drawNoSelectionHint(DrawContext context, int x, int y) {
+        int lineY = y;
+        for (final var line : Text.translatable("text.deathlog.no_info_selected_hint").getString().split("\n")) {
+            context.drawText(textRenderer, Text.literal(line), x, lineY, 0xFFAAAAAA, false);
+            lineY += 12;
+        }
     }
 
     private void restoreSelected() {
@@ -170,7 +182,7 @@ public class DeathLogScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyInput keyInput) {
-        if (hoveredStack != null && client.options.dropKey.matchesKey(keyInput)) {
+        if (hoveredStack != null && !(this.getFocused() instanceof TextFieldWidget) && client.options.dropKey.matchesKey(keyInput)) {
             performItemAction();
             return true;
         }
@@ -182,15 +194,46 @@ public class DeathLogScreen extends Screen {
         if (client.player.isCreative()) {
             client.interactionManager.dropCreativeStack(hoveredStack);
         } else {
-            var cmd = new StringBuilder("/give ").append(client.player.getName().getString()).append(" ");
-            cmd.append(Registries.ITEM.getId(hoveredStack.getItem()));
-            if (client.world != null) {
-                var ops = client.world.getRegistryManager().getOps(NbtOps.INSTANCE);
-                var encodedNbt = ItemStack.CODEC.encodeStart(ops, hoveredStack).result().orElseGet(NbtCompound::new);
-                cmd.append(encodedNbt);
-            }
-            client.keyboard.setClipboard(cmd.toString());
+            client.keyboard.setClipboard(buildGiveCommand(hoveredStack));
         }
+    }
+
+    private String buildGiveCommand(ItemStack stack) {
+        final var cmd = new StringBuilder("/give ").append(client.player.getName().getString()).append(" ");
+
+        var ops = client.world != null
+                ? client.world.getRegistryManager().getOps(NbtOps.INSTANCE)
+                : net.minecraft.registry.DynamicRegistryManager.EMPTY.getOps(NbtOps.INSTANCE);
+        var encoded = ItemStack.CODEC.encodeStart(ops, stack).result().orElseGet(NbtCompound::new);
+
+        if (!(encoded instanceof NbtCompound nbt) || !nbt.contains("id")) {
+            cmd.append(Registries.ITEM.getId(stack.getItem()));
+            return cmd.toString();
+        }
+
+        cmd.append(nbt.getString("id", ""));
+
+        final var components = nbt.getCompoundOrEmpty("components");
+        if (!components.isEmpty()) {
+            cmd.append('[');
+            final var keys = new ArrayList<>(components.getKeys());
+            for (int i = 0; i < keys.size(); i++) {
+                final String key = keys.get(i);
+                final var value = components.get(key);
+                if (i > 0) cmd.append(',');
+                cmd.append(key);
+                // Removed components (encoded as "!id" with an empty value) use the bare "[!id]" syntax
+                if (!(key.startsWith("!") && value instanceof NbtCompound removal && removal.isEmpty())) {
+                    cmd.append('=').append(value);
+                }
+            }
+            cmd.append(']');
+        }
+
+        final int count = nbt.getInt("count", 1);
+        if (count > 1) cmd.append(' ').append(count);
+
+        return cmd.toString();
     }
 
     private int drawTitleText(DrawContext context, Text text, int x, int y) {

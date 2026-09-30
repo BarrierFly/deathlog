@@ -53,7 +53,8 @@ public class ClientDeathLogStorage extends BaseDeathLogStorage implements Direct
         if (client.isInSingleplayer()) {
             deathInfo.setProperty(DeathInfo.LOCATION_KEY, new LocationProperty(((MinecraftServerAccessor) client.getServer()).deathlog_getSession().getDirectoryName(), false));
         } else {
-            deathInfo.setProperty(DeathInfo.LOCATION_KEY, new LocationProperty(client.getCurrentServerEntry().name, true));
+            final var serverEntry = client.getCurrentServerEntry();
+            deathInfo.setProperty(DeathInfo.LOCATION_KEY, new LocationProperty(serverEntry != null ? serverEntry.name : "Server", true));
         }
 
         deathInfo.setProperty(DeathInfo.SCORE_KEY, new ScoreProperty(player.getScore(), player.experienceLevel, player.experienceProgress, player.totalExperience));

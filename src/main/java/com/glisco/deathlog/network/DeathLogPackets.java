@@ -77,10 +77,6 @@ public class DeathLogPackets {
 
     public static class Server {
 
-        public static void registerDedicatedListeners() {
-            // Handlers are registered in DeathLogPackets.init()
-        }
-
         public static void registerCommonListeners() {
             init();
         }
@@ -96,7 +92,13 @@ public class DeathLogPackets {
                     return;
                 }
 
-                var info = DeathLogCommon.getStorage().getDeathInfoList(profileId).get(index);
+                var infoList = DeathLogCommon.getStorage().getDeathInfoList(profileId);
+                if (index < 0 || index > infoList.size() - 1) {
+                    BaseDeathLogStorage.LOGGER.warn("Received info request with invalid index from '{}'", context.player().getName().getString());
+                    return;
+                }
+
+                var info = infoList.get(index);
                 var buffer = PacketByteBufs.create();
                 buffer.writeVarInt(index);
                 info.write(buffer, server.getRegistryManager());
@@ -122,7 +124,7 @@ public class DeathLogPackets {
                 }
 
                 final var infoList = DeathLogCommon.getStorage().getDeathInfoList(profileId);
-                if (index > infoList.size() - 1) {
+                if (index < 0 || index > infoList.size() - 1) {
                     BaseDeathLogStorage.LOGGER.warn("Received restore packet with invalid index from '{}'", context.player().getName().getString());
                     return;
                 }
@@ -142,7 +144,13 @@ public class DeathLogPackets {
                     return;
                 }
 
-                DeathLogServer.getStorage().delete(DeathLogServer.getStorage().getDeathInfoList(profileId).get(index), profileId);
+                var infoList = DeathLogServer.getStorage().getDeathInfoList(profileId);
+                if (index < 0 || index > infoList.size() - 1) {
+                    BaseDeathLogStorage.LOGGER.warn("Received delete packet with invalid index from '{}'", context.player().getName().getString());
+                    return;
+                }
+
+                DeathLogServer.getStorage().delete(infoList.get(index), profileId);
             });
         }
 
