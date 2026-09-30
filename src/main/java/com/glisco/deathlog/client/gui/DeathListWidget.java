@@ -78,6 +78,6 @@ public class DeathListWidget extends AlwaysSelectedEntryListWidget<DeathListEntr
 
     private void addDeathEntry(DeathInfo info) {
         var entry = new DeathListEntryContainer(this, info);
-        addEntry(entry, entry.getEntryHeight());
+        addEntry(entry, 30);
     }
 }
